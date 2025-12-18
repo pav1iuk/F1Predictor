@@ -1,48 +1,158 @@
 ﻿<Window x:Class="F1Predictor.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="F1 Predictor Alpha" Height="350" Width="400">
-    <Grid Margin="20">
-        <StackPanel VerticalAlignment="Center">
-            <TextBlock Text="F1 Race Predictor" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
+        mc:Ignorable="d"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}"
+        Title="F1 AI Predictor 2025" Height="720" Width="1280"
+        WindowState="Maximized" WindowStartupLocation="CenterScreen">
 
-            <Label Content="Оберіть гонщика:"/>
-            <ComboBox x:Name="DriverCombo" Height="30" Margin="0,0,0,10" 
-                      DisplayMemberPath="FullName" 
-                      SelectedValuePath="DriverId"
-                      IsEditable="True" 
-                      IsTextSearchEnabled="True"/>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <Label Content="Оберіть команду:"/>
-            <ComboBox x:Name="TeamCombo" Height="30" Margin="0,0,0,10" 
-                      DisplayMemberPath="Name" 
-                      SelectedValuePath="ConstructorId"
-                      IsEditable="True" 
-                      IsTextSearchEnabled="True"
-                      SelectionChanged="TeamCombo_SelectionChanged"/> 
-            <Image x:Name="TeamLogo" Height="100" Margin="0,0,0,20" 
-                   Stretch="Uniform"/>
-            <Label Content="Оберіть трасу:"/>
-            <ComboBox x:Name="CircuitCombo" Height="30" Margin="0,0,0,10"
-                      DisplayMemberPath="DisplayName"
-                      SelectedValuePath="CircuitId"
-                      IsEditable="True" IsTextSearchEnabled="True"/>
+        <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" materialDesign:ShadowAssist.ShadowDepth="Depth3">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock VerticalAlignment="Center" Margin="16 0 0 0" FontSize="24" FontWeight="Bold" Text="🏁 F1 AI PREDICTOR PRO"/>
+            </StackPanel>
+        </materialDesign:ColorZone>
 
-            <Label Content="Стартова позиція (1-20):"/>
-            <Slider x:Name="GridSlider" Minimum="1" Maximum="20" Value="1" 
-                    TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,0,0,5"/>
-            <TextBlock Text="{Binding ElementName=GridSlider, Path=Value}" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+        <TabControl Grid.Row="1" Style="{StaticResource MaterialDesignFilledTabControl}" TabStripPlacement="Left">
+            
+            <TabItem Width="80" Height="80">
+                <TabItem.Header>
+                    <StackPanel>
+                        <TextBlock Text="AI" HorizontalAlignment="Center" FontSize="18" FontWeight="Bold"/>
+                        <TextBlock Text="Прогноз" HorizontalAlignment="Center" FontSize="10"/>
+                    </StackPanel>
+                </TabItem.Header>
 
-            <Button Content="Передбачити результат" Height="40" Click="ButtonPredict_Click"/>
+                <Grid Margin="20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="350"/> <ColumnDefinition Width="*"/>   </Grid.ColumnDefinitions>
 
-            <Border Background="#E8F5E9" CornerRadius="10" Padding="15" Margin="0,20,0,0">
-                <StackPanel>
-                    <TextBlock Text="Прогнозований результат:" HorizontalAlignment="Center" Foreground="Gray"/>
-                    <TextBlock x:Name="ResultText" Text="---" 
-                               FontSize="28" FontWeight="Bold" 
-                               HorizontalAlignment="Center" Foreground="#2E7D32"/>
-                </StackPanel>
-            </Border>
-        </StackPanel>
+                    <materialDesign:Card Padding="20" Margin="0,0,20,0" UniformCornerRadius="10" materialDesign:ShadowAssist.ShadowDepth="Depth2">
+                        <StackPanel>
+                            <TextBlock Text="Налаштування гонки" Style="{StaticResource MaterialDesignHeadline5TextBlock}" Margin="0,0,0,20"/>
+
+                            <ComboBox x:Name="CircuitCombo" materialDesign:HintAssist.Hint="Оберіть трасу 🌍" 
+                                      Style="{StaticResource MaterialDesignFloatingHintComboBox}" Margin="0,0,0,20"
+                                      DisplayMemberPath="DisplayName" SelectedValuePath="CircuitId"
+                                      IsEditable="True" SelectionChanged="CircuitCombo_SelectionChanged"/>
+
+                            <ComboBox x:Name="DriverCombo" materialDesign:HintAssist.Hint="Оберіть пілота 🏎️" 
+                                      Style="{StaticResource MaterialDesignFloatingHintComboBox}" Margin="0,0,0,20"
+                                      DisplayMemberPath="FullName" SelectedValuePath="DriverId"
+                                      IsEditable="True" SelectionChanged="DriverCombo_SelectionChanged"/>
+
+                            <ComboBox x:Name="TeamCombo" materialDesign:HintAssist.Hint="Оберіть команду 🔧" 
+                                      Style="{StaticResource MaterialDesignFloatingHintComboBox}" Margin="0,0,0,20"
+                                      DisplayMemberPath="Name" SelectedValuePath="ConstructorId"
+                                      IsEditable="True" SelectionChanged="TeamCombo_SelectionChanged"/>
+
+                            <TextBlock Text="Стартова позиція (Grid)" Margin="0,10,0,5" Foreground="Gray"/>
+                            <DockPanel Margin="0,0,0,30">
+                                <TextBlock Text="{Binding ElementName=GridSlider, Path=Value}" DockPanel.Dock="Right" FontWeight="Bold" Margin="10,0,0,0" FontSize="16"/>
+                                <Slider x:Name="GridSlider" Minimum="1" Maximum="20" Value="1" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                            </DockPanel>
+
+                            <Button Content="РОЗРАХУВАТИ ПРОГНОЗ" Height="50" FontSize="16" Click="ButtonPredict_Click"
+                                    materialDesign:ButtonAssist.CornerRadius="25"/>
+                            
+                            <Button Content="Перевірити точність моделі" Margin="0,20,0,0" Style="{StaticResource MaterialDesignOutlinedButton}" Click="ButtonEvaluate_Click"/>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <materialDesign:Card Grid.Row="0" Margin="0,0,0,20" Padding="20" UniformCornerRadius="10" Background="#252525">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <Border Width="120" Height="120" CornerRadius="10" Background="White" Margin="0,0,20,0">
+                                    <Image x:Name="TeamLogo" Stretch="Uniform" Margin="10"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Прогнозований результат:" Foreground="Gray" FontSize="16"/>
+                                    <TextBlock x:Name="ResultText" Text="---" FontSize="48" FontWeight="Bold" Foreground="#FF5252"/>
+                                </StackPanel>
+                            </Grid>
+                        </materialDesign:Card>
+
+                        <materialDesign:Card Grid.Row="1" Padding="20" UniformCornerRadius="10">
+                            <StackPanel>
+                                <TextBlock Text="Історична аналітика (останні виступи)" Style="{StaticResource MaterialDesignHeadline6TextBlock}" Margin="0,0,0,20"/>
+                                <lvc:CartesianChart x:Name="StatsChart" Height="300" Margin="10">
+                                    <lvc:CartesianChart.AxisY>
+                                        <lvc:Axis Title="Місце на фініші" MinValue="1" MaxValue="20" IsMerged="True">
+                                            <lvc:Axis.Separator>
+                                                <lvc:Separator Step="1"/>
+                                            </lvc:Axis.Separator>
+                                        </lvc:Axis>
+                                    </lvc:CartesianChart.AxisY>
+                                    <lvc:CartesianChart.AxisX>
+                                        <lvc:Axis Title="Останні гонки"></lvc:Axis>
+                                    </lvc:CartesianChart.AxisX>
+                                </lvc:CartesianChart>
+                            </StackPanel>
+                        </materialDesign:Card>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Width="80" Height="80" Selector.Selected="HistoryTab_Selected">
+                 <TabItem.Header>
+                    <StackPanel>
+                        <TextBlock Text="DATA" HorizontalAlignment="Center" FontSize="18" FontWeight="Bold"/>
+                        <TextBlock Text="Історія" HorizontalAlignment="Center" FontSize="10"/>
+                    </StackPanel>
+                </TabItem.Header>
+
+                <Grid Margin="20">
+                    <materialDesign:Card Padding="0" UniformCornerRadius="10">
+                        <DataGrid x:Name="HistoryGrid" AutoGenerateColumns="False" IsReadOnly="True" 
+                                  CanUserAddRows="False" HeadersVisibility="Column"
+                                  materialDesign:DataGridAssist.CellPadding="13 8 8 8" 
+                                  materialDesign:DataGridAssist.ColumnHeaderPadding="8">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Дата" Binding="{Binding Date, StringFormat=dd.MM HH:mm}" Width="120"/>
+                                <DataGridTextColumn Header="Пілот" Binding="{Binding DriverName}" Width="*"/>
+                                <DataGridTextColumn Header="Траса" Binding="{Binding CircuitName}" Width="200"/>
+                                <DataGridTextColumn Header="Старт" Binding="{Binding GridPosition}" Width="80"/>
+                                <DataGridTextColumn Header="Прогноз" Binding="{Binding PredictedPosition, StringFormat=N1}" Width="100" FontWeight="Bold"/>
+                                
+                                <DataGridTemplateColumn Width="100">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="DEL" Style="{StaticResource MaterialDesignFlatButton}" 
+                                                    Foreground="Red" Click="ButtonDelete_Click"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </materialDesign:Card>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>

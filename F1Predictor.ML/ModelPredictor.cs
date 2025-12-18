@@ -29,7 +29,7 @@ namespace F1Predictor.ML
             _predictionEngine = _mlContext.Model.CreatePredictionEngine<RaceData, RacePrediction>(_model);
         }
 
-        public float Predict(float driverId, float teamId, float gridPosition, float raceId)
+        public float Predict(float driverId, float teamId, float gridPosition, float circuitId)
         {
             // Створюємо об'єкт з даними для прогнозу
             var inputData = new RaceData
@@ -37,7 +37,7 @@ namespace F1Predictor.ML
                 DriverId = driverId,
                 ConstructorId = teamId,
                 Grid = gridPosition,
-                RaceId = raceId
+                CircuitId = circuitId
             };
 
             // Робимо прогноз

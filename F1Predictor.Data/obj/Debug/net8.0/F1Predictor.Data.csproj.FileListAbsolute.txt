@@ -13,3 +13,4 @@ C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\F1P
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\refint\F1Predictor.Data.dll
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\F1Predictor.Data.pdb
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\ref\F1Predictor.Data.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\F1Predictor.Data.sourcelink.json

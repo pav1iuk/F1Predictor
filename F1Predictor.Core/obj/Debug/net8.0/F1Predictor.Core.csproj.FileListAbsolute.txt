@@ -9,3 +9,4 @@ C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\F1P
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\refint\F1Predictor.Core.dll
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\F1Predictor.Core.pdb
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\ref\F1Predictor.Core.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\F1Predictor.Core.sourcelink.json

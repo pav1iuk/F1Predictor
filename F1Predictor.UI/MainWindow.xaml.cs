@@ -5,16 +5,26 @@ using F1Predictor.Core;
 using F1Predictor.Data; // Наш новий проект
 using F1Predictor.ML;
 using System.Windows.Media.Imaging;
+using LiveCharts;
+using LiveCharts.Wpf;
 namespace F1Predictor.UI;
 
 public partial class MainWindow : Window
 {
     private readonly ModelPredictor? _predictor;
-
+    private readonly HistoryService _historyService; // Додай using F1Predictor.Data;
     public MainWindow()
     {
         InitializeComponent();
-        
+        /* string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        try {
+            var trainer = new ModelTrainer();
+            trainer.Train(
+                Path.Combine(baseDir, "Data", "results.csv"), 
+                Path.Combine(baseDir, "Data", "races.csv") // Додали другий файл
+            );
+            MessageBox.Show("Модель оновлено з урахуванням ТРАС!");
+        } catch (Exception ex) { MessageBox.Show("Error training: " + ex.Message); } */
         // 1. Завантаження моделі
         try 
         {
@@ -24,7 +34,7 @@ public partial class MainWindow : Window
         {
             MessageBox.Show($"Помилка ML: {ex.Message}");
         }
-
+        _historyService = new HistoryService();
         // 2. Заповнення списків (Новий код)
         LoadFormData();
     }
@@ -78,10 +88,28 @@ public partial class MainWindow : Window
             float driverId = Convert.ToSingle(DriverCombo.SelectedValue);
             float teamId = Convert.ToSingle(TeamCombo.SelectedValue);
             float grid = (float)GridSlider.Value;
+            if (CircuitCombo.SelectedValue == null) 
+            {
+                MessageBox.Show("Оберіть трасу!"); return;
+            }
             float circuitId = Convert.ToSingle(CircuitCombo.SelectedValue);
             // 2. Робимо прогноз
             float result = _predictor.Predict(driverId, teamId, grid, circuitId);
+            var driverObj = DriverCombo.SelectedItem as Driver; // using F1Predictor.Core
+            var teamObj = TeamCombo.SelectedItem as Team;
+            var circuitObj = CircuitCombo.SelectedItem as Circuit;
 
+            var record = new PredictionHistory
+            {
+                DriverName = driverObj?.FullName ?? "Unknown",
+                TeamName = teamObj?.Name ?? "Unknown",
+                CircuitName = circuitObj?.Name ?? "Unknown",
+                GridPosition = (int)grid,
+                PredictedPosition = result,
+                Date = DateTime.Now
+            };
+
+            _historyService.AddRecord(record);
             // 3. Виводимо результат
             // Округляємо до цілого числа (наприклад, 3.2 -> 3 місце)
             int position = (int)Math.Round(result);
@@ -97,7 +125,11 @@ public partial class MainWindow : Window
             MessageBox.Show($"Помилка: {ex.Message}");
         }
     }
-
+    private void HistoryTab_Selected(object sender, RoutedEventArgs e)
+    {
+        // Завантажуємо дані з БД і показуємо в таблиці
+        HistoryGrid.ItemsSource = _historyService.GetAll();
+    }
     private void TeamCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         // Якщо нічого не вибрано - виходимо
@@ -119,6 +151,107 @@ public partial class MainWindow : Window
         {
             // Якщо посилання бите - ігноруємо
         }
+    }
+    private void DriverCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateChart();
+    }
+    private void UpdateChart()
+    {
+        // Перевіряємо, чи вибрані ВСІ необхідні дані
+        if (DriverCombo.SelectedValue == null || CircuitCombo.SelectedValue == null) return;
+
+        float driverId = Convert.ToSingle(DriverCombo.SelectedValue);
+        float circuitId = Convert.ToSingle(CircuitCombo.SelectedValue);
+
+        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        string resultsPath = Path.Combine(baseDir, "Data", "results.csv");
+        string racesPath = Path.Combine(baseDir, "Data", "races.csv");
+
+        // ВИКЛИКАЄМО НОВИЙ МЕТОД (з фільтром по трасі)
+        // Зверни увагу: клас DataProcessor має бути доступний (додай using F1Predictor.ML або F1Predictor.Data)
+        var history = F1Predictor.ML.DataProcessor.GetDriverResultsAtCircuit(driverId, circuitId, resultsPath, racesPath);
+
+        // Якщо історії немає (наприклад, новачок ніколи тут не їздив) - очищаємо графік
+        if (history.Count == 0) 
+        {
+            StatsChart.Series = null;
+            return;
+        }
+
+        // Малюємо графік
+        StatsChart.Series = new SeriesCollection
+        {
+            new LineSeries
+            {
+                Title = "Позиція",
+                Values = new ChartValues<float>(history),
+                PointGeometry = DefaultGeometries.Circle,
+                PointGeometrySize = 10,
+                LineSmoothness = 0 // Прямі лінії
+            }
+        };
+    }
+    private void CircuitCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateChart();
+    }
+    private void ButtonDelete_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // 1. Дізнаємося, яку саме кнопку натиснули
+            var button = sender as Button;
+            
+            // 2. Отримуємо дані рядка, в якому ця кнопка знаходиться
+            // (DataContext кнопки - це і є наш об'єкт PredictionHistory)
+            var record = button.DataContext as PredictionHistory;
+
+            if (record == null) return;
+
+            // 3. Питаємо підтвердження (щоб не видалити випадково)
+            var result = MessageBox.Show($"Видалити запис про {record.DriverName}?", 
+                "Підтвердження", 
+                MessageBoxButton.YesNo, 
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // 4. Видаляємо з бази
+                _historyService.DeleteRecord(record.Id);
+
+                // 5. Оновлюємо таблицю на екрані
+                HistoryGrid.ItemsSource = _historyService.GetAll();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Помилка видалення: {ex.Message}");
+        }
+    }
+    private void ButtonEvaluate_Click(object sender, RoutedEventArgs e)
+    {
+        // Показуємо, що процес пішов (бо це може зайняти пару секунд)
+        ResultText.Text = "Обчислення метрик...";
+        
+        // Запускаємо в окремому потоці, щоб вікно не зависло (Task.Run)
+        Task.Run(() => 
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string resultsPath = Path.Combine(baseDir, "Data", "results.csv");
+            string racesPath = Path.Combine(baseDir, "Data", "races.csv");
+
+            // Створюємо оцінювач
+            var evaluator = new F1Predictor.ML.ModelEvaluator();
+            string report = evaluator.Evaluate(resultsPath, racesPath);
+
+            // Повертаємося в головний потік, щоб показати результат
+            Dispatcher.Invoke(() => 
+            {
+                MessageBox.Show(report, "Наукова оцінка моделі", MessageBoxButton.OK, MessageBoxImage.Information);
+                ResultText.Text = "---"; // Повертаємо текст назад
+            });
+        });
     }
     private string GetTeamLogoUrl(string teamName)
 {
