@@ -87,9 +87,26 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <Border Width="120" Height="120" CornerRadius="10" Background="White" Margin="0,0,20,0">
-                                    <Image x:Name="TeamLogo" Stretch="Uniform" Margin="10"/>
-                                </Border>
+                                <StackPanel Grid.Column="0" Orientation="Vertical" Margin="0,0,20,0">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <Border Width="80" Height="80" CornerRadius="40" Background="#333" Margin="0,0,10,0" ClipToBounds="True">
+                                            <Image x:Name="DriverPhoto" Stretch="UniformToFill"/>
+                                        </Border>
+                                        <Border Width="60" Height="60" CornerRadius="10" Background="White" VerticalAlignment="Center">
+                                            <Image x:Name="TeamLogo" Stretch="Uniform" Margin="5"/>
+                                        </Border>
+                                        <Border Width="100" Height="100" CornerRadius="10" Background="Transparent" VerticalAlignment="Center">
+                                            <Image x:Name="CircuitImage" Stretch="Uniform"/>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <materialDesign:Card Padding="10" Background="#303030" UniformCornerRadius="5">
+                                        <StackPanel>
+                                            <TextBlock Text="Сер. піт-стоп:" Foreground="Gray" FontSize="10"/>
+                                            <TextBlock x:Name="PitStopText" Text="---" FontWeight="Bold" Foreground="#FFD700" FontSize="14"/>
+                                        </StackPanel>
+                                    </materialDesign:Card>
+                                </StackPanel>
 
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                     <TextBlock Text="Прогнозований результат:" Foreground="Gray" FontSize="16"/>
@@ -150,6 +167,58 @@
                                 </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
+                    </materialDesign:Card>
+                </Grid>
+            </TabItem>
+            <TabItem Width="80" Height="80">
+                <TabItem.Header>
+                    <StackPanel>
+                        <TextBlock Text="VS" HorizontalAlignment="Center" FontSize="18" FontWeight="Bold"/>
+                        <TextBlock Text="Батл" HorizontalAlignment="Center" FontSize="10"/>
+                    </StackPanel>
+                </TabItem.Header>
+
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    </Grid.RowDefinitions>
+
+                    <materialDesign:Card Padding="20" UniformCornerRadius="10" Margin="0,0,0,20">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <ComboBox x:Name="DriverACombo" materialDesign:HintAssist.Hint="Пілот A (напр. Hamilton)" 
+                                          Style="{StaticResource MaterialDesignFloatingHintComboBox}"
+                                          DisplayMemberPath="FullName" SelectedValuePath="DriverId"
+                                          IsEditable="True"/>
+                            </StackPanel>
+
+                            <Button Grid.Column="1" Content="VS" Margin="20,0" Width="60" Height="60"
+                                    Style="{StaticResource MaterialDesignFloatingActionDarkButton}"
+                                    Click="ButtonCompare_Click" Background="#D32F2F" BorderBrush="#D32F2F"/>
+
+                            <StackPanel Grid.Column="2">
+                                <ComboBox x:Name="DriverBCombo" materialDesign:HintAssist.Hint="Пілот B (напр. Schumacher)" 
+                                          Style="{StaticResource MaterialDesignFloatingHintComboBox}"
+                                          DisplayMemberPath="FullName" SelectedValuePath="DriverId"
+                                          IsEditable="True"/>
+                            </StackPanel>
+                        </Grid>
+                    </materialDesign:Card>
+
+                    <materialDesign:Card Grid.Row="1" Padding="20" UniformCornerRadius="10">
+                        <lvc:CartesianChart x:Name="VsChart" LegendLocation="Bottom">
+                            <lvc:CartesianChart.AxisX>
+                                <lvc:Axis Labels="Гонки,Перемоги,Подіуми,Поули"></lvc:Axis>
+                            </lvc:CartesianChart.AxisX>
+                            <lvc:CartesianChart.AxisY>
+                                <lvc:Axis MinValue="0"></lvc:Axis>
+                            </lvc:CartesianChart.AxisY>
+                        </lvc:CartesianChart>
                     </materialDesign:Card>
                 </Grid>
             </TabItem>

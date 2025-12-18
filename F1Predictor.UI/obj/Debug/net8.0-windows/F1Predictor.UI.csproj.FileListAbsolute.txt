@@ -109,3 +109,5 @@ C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.UI\bin\Debug\net8.0-windo
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.UI\bin\Debug\net8.0-windows\MaterialDesignThemes.Wpf.dll
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.UI\bin\Debug\net8.0-windows\Microsoft.Xaml.Behaviors.dll
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.UI\obj\Debug\net8.0-windows\App.baml
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.UI\bin\Debug\net8.0-windows\Data\pit_stops.csv
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.UI\bin\Debug\net8.0-windows\Data\qualifying.csv

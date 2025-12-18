@@ -16,3 +16,5 @@ C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\F1Pre
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\ref\F1Predictor.ML.dll
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\bin\Debug\net8.0\Data\circuits.csv
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\F1Predictor.ML.sourcelink.json
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\bin\Debug\net8.0\Data\pit_stops.csv
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\bin\Debug\net8.0\Data\qualifying.csv

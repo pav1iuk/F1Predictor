@@ -54,7 +54,8 @@ public partial class MainWindow : Window
             // Прив'язуємо дані до ComboBox
             DriverCombo.ItemsSource = drivers;
             TeamCombo.ItemsSource = teams;
-
+            DriverACombo.ItemsSource = drivers;
+            DriverBCombo.ItemsSource = drivers;
             // Вибираємо перші значення за замовчуванням
             DriverCombo.SelectedIndex = 0;
             TeamCombo.SelectedIndex = 0;
@@ -155,46 +156,69 @@ public partial class MainWindow : Window
     private void DriverCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         UpdateChart();
+    
+        if (DriverCombo.SelectedItem is Driver selectedDriver)
+        {
+            // Фото
+            try { DriverPhoto.Source = new BitmapImage(new Uri(GetDriverPhotoUrl(selectedDriver.FullName))); } catch { }
+        
+            // НОВЕ: Оновлення піт-стопів (викликаємо через Task, щоб не зависало)
+            Task.Run(() => 
+            {
+                string avgStop = GetAvgPitStopTime(selectedDriver.DriverId);
+                Dispatcher.Invoke(() => PitStopText.Text = avgStop);
+            });
+        }
     }
     private void UpdateChart()
     {
-        // Перевіряємо, чи вибрані ВСІ необхідні дані
-        if (DriverCombo.SelectedValue == null || CircuitCombo.SelectedValue == null) return;
-
+        if (DriverCombo.SelectedValue == null) return;
         float driverId = Convert.ToSingle(DriverCombo.SelectedValue);
-        float circuitId = Convert.ToSingle(CircuitCombo.SelectedValue);
 
-        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        string resultsPath = Path.Combine(baseDir, "Data", "results.csv");
-        string racesPath = Path.Combine(baseDir, "Data", "races.csv");
+        // Отримуємо подвійні дані (Кваліфікація + Гонка)
+        var performance = GetDriverPerformance(driverId);
 
-        // ВИКЛИКАЄМО НОВИЙ МЕТОД (з фільтром по трасі)
-        // Зверни увагу: клас DataProcessor має бути доступний (додай using F1Predictor.ML або F1Predictor.Data)
-        var history = F1Predictor.ML.DataProcessor.GetDriverResultsAtCircuit(driverId, circuitId, resultsPath, racesPath);
+        if (performance.Count == 0) return;
 
-        // Якщо історії немає (наприклад, новачок ніколи тут не їздив) - очищаємо графік
-        if (history.Count == 0) 
-        {
-            StatsChart.Series = null;
-            return;
-        }
-
-        // Малюємо графік
         StatsChart.Series = new SeriesCollection
         {
+            // Лінія 1: Кваліфікація (Синя, пунктирна)
             new LineSeries
             {
-                Title = "Позиція",
-                Values = new ChartValues<float>(history),
-                PointGeometry = DefaultGeometries.Circle,
+                Title = "Кваліфікація",
+                Values = new ChartValues<double>(performance.Select(x => x.QualiPos)),
+                PointGeometry = DefaultGeometries.Square,
                 PointGeometrySize = 10,
-                LineSmoothness = 0 // Прямі лінії
+                Stroke = System.Windows.Media.Brushes.DodgerBlue,
+                Fill = System.Windows.Media.Brushes.Transparent, // Без заливки
+                StrokeDashArray = new System.Windows.Media.DoubleCollection { 2 } // Пунктирна лінія
+            },
+            
+            // Лінія 2: Гонка (Червона, суцільна)
+            new LineSeries
+            {
+                Title = "Фініш",
+                Values = new ChartValues<double>(performance.Select(x => x.RacePos)),
+                PointGeometry = DefaultGeometries.Circle,
+                PointGeometrySize = 12,
+                Stroke = System.Windows.Media.Brushes.Red,
+                Fill = System.Windows.Media.Brushes.Transparent, // Можна додати легку червону заливку
+                StrokeThickness = 3
             }
         };
+        
+        // Оновлюємо підписи осей, якщо треба
     }
     private void CircuitCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        UpdateChart();
+        UpdateChart(); // Твій старий метод
+
+        // НОВЕ: Оновлення карти
+        if (CircuitCombo.SelectedItem is Circuit selectedCircuit)
+        {
+            try { CircuitImage.Source = new BitmapImage(new Uri(GetCircuitMapUrl(selectedCircuit.Name))); }
+            catch { }
+        }
     }
     private void ButtonDelete_Click(object sender, RoutedEventArgs e)
     {
@@ -252,6 +276,180 @@ public partial class MainWindow : Window
                 ResultText.Text = "---"; // Повертаємо текст назад
             });
         });
+    }
+    private string GetAvgPitStopTime(float driverId)
+    {
+        string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "pit_stops.csv");
+    
+        // Це може зайняти час, тому в реальному проекті це кешують, але для курсової ок
+        var allStops = CsvDataLoader.LoadPitStops(path);
+    
+        var driverStops = allStops
+            .Where(p => p.DriverId == driverId)
+            .Select(p => p.Seconds)
+            .ToList();
+
+        if (driverStops.Count == 0) return "Немає даних";
+
+        // Відфільтруємо аномалії (наприклад, піт-стопи довші 40 секунд - це ремонт, а не заміна коліс)
+        var cleanStops = driverStops.Where(t => t < 40).ToList();
+    
+        if (cleanStops.Count == 0) return "---";
+
+        double avg = cleanStops.Average();
+        return $"{avg:F2} сек";
+    }
+    // Додай цей клас-модель прямо всередині MainWindow.xaml.cs або окремо
+    public class RacePerformance
+    {
+        public int RaceNumber { get; set; } // Просто 1, 2, 3... для осі X
+        public double QualiPos { get; set; }
+        public double RacePos { get; set; }
+    }
+    private DriverStats CalculateStats(float driverId, string driverName)
+    {
+        string resultsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "results.csv");
+
+        // Читаємо файл і фільтруємо по водію
+        var driverResults = File.ReadAllLines(resultsPath)
+            .Skip(1)
+            .Select(line => line.Split(','))
+            .Where(p => 
+            {
+                // Перевіряємо, чи це наш водій
+                return float.TryParse(p[2], out float dId) && dId == driverId;
+            })
+            .Select(p => new
+            {
+                Grid = int.Parse(p[5]),
+                PositionOrder = int.Parse(p[8]) // Фінальна позиція
+            })
+            .ToList();
+
+        if (driverResults.Count == 0) return new DriverStats { DriverName = driverName };
+
+        // Рахуємо статистику (LINQ Aggregation)
+        return new DriverStats
+        {
+            DriverName = driverName,
+            TotalRaces = driverResults.Count,
+            Wins = driverResults.Count(r => r.PositionOrder == 1),
+            Podiums = driverResults.Count(r => r.PositionOrder <= 3),
+            Poles = driverResults.Count(r => r.Grid == 1),
+            AvgPosition = driverResults.Average(r => r.PositionOrder)
+        };
+    }
+// Додай цей метод у клас MainWindow
+    private List<RacePerformance> GetDriverPerformance(float driverId)
+    {
+        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        string resultsPath = Path.Combine(baseDir, "Data", "results.csv");
+        string qualiPath = Path.Combine(baseDir, "Data", "qualifying.csv");
+
+        // 1. Вантажимо Кваліфікації пілота
+        var allQualis = CsvDataLoader.LoadQualifying(qualiPath)
+            .Where(q => q.DriverId == driverId)
+            .ToList();
+
+        // 2. Вантажимо Результати гонок (використовуємо твій існуючий лоадер або пишемо простий тут)
+        // Швидкий варіант читання results.csv тільки для цього графіку:
+        var allRaces = File.ReadAllLines(resultsPath).Skip(1)
+            .Select(line => line.Split(','))
+            .Where(p => float.Parse(p[2]) == driverId)
+            .Select(p => new { 
+                RaceId = int.Parse(p[1]), 
+                Pos = int.Parse(p[8]) 
+            })
+            .OrderByDescending(r => r.RaceId) // Спочатку нові
+            .Take(15) // Беремо останні 15 гонок
+            .ToList();
+
+        var data = new List<RacePerformance>();
+        int counter = 1;
+
+        // 3. З'єднуємо (Join)
+        foreach (var race in allRaces.OrderBy(r => r.RaceId)) // Сортуємо від старих до нових для графіка
+        {
+            var quali = allQualis.FirstOrDefault(q => q.RaceId == race.RaceId);
+        
+            data.Add(new RacePerformance
+            {
+                RaceNumber = counter++,
+                RacePos = race.Pos,
+                // Якщо даних про кваліфікацію немає (старі гонки), беремо те саме, що в гонці, або 0
+                QualiPos = quali != null ? quali.Position : race.Pos 
+            });
+        }
+
+        return data;
+    }
+    private void ButtonCompare_Click(object sender, RoutedEventArgs e)
+    {
+        // 1. Перевірка вибору
+        if (DriverACombo.SelectedItem == null || DriverBCombo.SelectedItem == null)
+        {
+            MessageBox.Show("Оберіть обох пілотів для битви!");
+            return;
+        }
+
+        // 2. Отримуємо дані з ComboBox
+        var driverA = DriverACombo.SelectedItem as Driver;
+        var driverB = DriverBCombo.SelectedItem as Driver;
+
+        // 3. Рахуємо статистику (це може зайняти секунду, тому краще Task.Run, але можна і так)
+        var statsA = CalculateStats(driverA.DriverId, driverA.FullName);
+        var statsB = CalculateStats(driverB.DriverId, driverB.FullName);
+
+        // 4. Малюємо Стовпчикову діаграму (Column Chart)
+        VsChart.Series = new SeriesCollection
+        {
+            // Стовпчики Пілота А
+            new ColumnSeries
+            {
+                Title = statsA.DriverName,
+                Values = new ChartValues<int> { statsA.TotalRaces, statsA.Wins, statsA.Podiums, statsA.Poles },
+                DataLabels = true,
+                Fill = System.Windows.Media.Brushes.DodgerBlue // Синій колір
+            },
+            
+            // Стовпчики Пілота B
+            new ColumnSeries
+            {
+                Title = statsB.DriverName,
+                Values = new ChartValues<int> { statsB.TotalRaces, statsB.Wins, statsB.Podiums, statsB.Poles },
+                DataLabels = true,
+                Fill = System.Windows.Media.Brushes.Red // Червоний колір
+            }
+        };
+    }
+    private string GetDriverPhotoUrl(string driverName)
+    {
+        string name = driverName.ToLower().Trim();
+
+        if (name.Contains("verstappen")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/2col/image.png";
+        if (name.Contains("hamilton")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png.transform/2col/image.png";
+        if (name.Contains("leclerc")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png.transform/2col/image.png";
+        if (name.Contains("norris")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/兰NOR01_Lando_Norris/lannor01.png.transform/2col/image.png"; // URL може змінюватися, це приклад
+        if (name.Contains("alonso")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/F/FERALO01_Fernando_Alonso/feralo01.png.transform/2col/image.png";
+        if (name.Contains("sainz")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png.transform/2col/image.png";
+        if (name.Contains("russell")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png.transform/2col/image.png";
+        if (name.Contains("piastri")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png.transform/2col/image.png";
+    
+        // Заглушка (шолом)
+        return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/driver_fallback_image.png";
+    }
+    private string GetCircuitMapUrl(string circuitName)
+    {
+        string name = circuitName.ToLower();
+
+        if (name.Contains("monaco")) return "https://media.formula1.com/image/upload/f_auto/q_auto/v1677244984/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Monaco_Circuit.png";
+        if (name.Contains("monza")) return "https://media.formula1.com/image/upload/f_auto/q_auto/v1677244987/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Italy_Circuit.png";
+        if (name.Contains("silverstone")) return "https://media.formula1.com/image/upload/f_auto/q_auto/v1677244985/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Great_Britain_Circuit.png";
+        if (name.Contains("spa")) return "https://media.formula1.com/image/upload/f_auto/q_auto/v1677244982/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Belgium_Circuit.png";
+        if (name.Contains("suzuka")) return "https://media.formula1.com/image/upload/f_auto/q_auto/v1677244985/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Japan_Circuit.png";
+    
+        // Заглушка (карта світу)
+        return "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/World_Map_Blank.svg/640px-World_Map_Blank.svg.png";
     }
     private string GetTeamLogoUrl(string teamName)
 {
