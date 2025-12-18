@@ -1,0 +1,11 @@
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\bin\Debug\net8.0\F1Predictor.Core.deps.json
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\bin\Debug\net8.0\F1Predictor.Core.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\bin\Debug\net8.0\F1Predictor.Core.pdb
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\F1Predictor.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\F1Predictor.Core.AssemblyInfoInputs.cache
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\F1Predictor.Core.AssemblyInfo.cs
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\F1Predictor.Core.csproj.CoreCompileInputs.cache
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\F1Predictor.Core.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\refint\F1Predictor.Core.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\F1Predictor.Core.pdb
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Core\obj\Debug\net8.0\ref\F1Predictor.Core.dll

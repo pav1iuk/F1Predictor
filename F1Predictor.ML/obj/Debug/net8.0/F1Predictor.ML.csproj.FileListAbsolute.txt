@@ -1,0 +1,17 @@
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\F1Predictor.ML.csproj.AssemblyReference.cache
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\F1Predictor.ML.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\F1Predictor.ML.AssemblyInfoInputs.cache
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\F1Predictor.ML.AssemblyInfo.cs
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\F1Predictor.ML.csproj.CoreCompileInputs.cache
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\bin\Debug\net8.0\Data\results.csv
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\bin\Debug\net8.0\F1Predictor.ML.deps.json
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\bin\Debug\net8.0\F1Predictor.ML.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\bin\Debug\net8.0\F1Predictor.ML.pdb
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\bin\Debug\net8.0\F1Predictor.Core.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\bin\Debug\net8.0\F1Predictor.Core.pdb
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\F1Predic.51CCDB33.Up2Date
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\F1Predictor.ML.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\refint\F1Predictor.ML.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\F1Predictor.ML.pdb
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\obj\Debug\net8.0\ref\F1Predictor.ML.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.ML\bin\Debug\net8.0\Data\circuits.csv

@@ -1,0 +1,15 @@
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\bin\Debug\net8.0\F1Predictor.Data.deps.json
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\bin\Debug\net8.0\F1Predictor.Data.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\bin\Debug\net8.0\F1Predictor.Data.pdb
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\bin\Debug\net8.0\F1Predictor.Core.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\bin\Debug\net8.0\F1Predictor.Core.pdb
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\F1Predictor.Data.csproj.AssemblyReference.cache
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\F1Predictor.Data.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\F1Predictor.Data.AssemblyInfoInputs.cache
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\F1Predictor.Data.AssemblyInfo.cs
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\F1Predictor.Data.csproj.CoreCompileInputs.cache
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\F1Predic.A567EB42.Up2Date
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\F1Predictor.Data.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\refint\F1Predictor.Data.dll
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\F1Predictor.Data.pdb
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.Data\obj\Debug\net8.0\ref\F1Predictor.Data.dll
