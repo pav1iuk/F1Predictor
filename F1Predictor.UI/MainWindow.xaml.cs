@@ -154,60 +154,117 @@ public partial class MainWindow : Window
         }
     }
     private void DriverCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+{
+    // 1. Спочатку оновлюємо графік (він має свою логіку перемикача)
+    UpdateChart();
+
+    // 2. Перевіряємо, чи дійсно обрано водія (щоб уникнути помилок при очищенні)
+    if (DriverCombo.SelectedItem is Driver selectedDriver)
     {
-        UpdateChart();
-    
-        if (DriverCombo.SelectedItem is Driver selectedDriver)
+        // --- ОНОВЛЕННЯ ФОТО ---
+        try
         {
-            // Фото
-            try { DriverPhoto.Source = new BitmapImage(new Uri(GetDriverPhotoUrl(selectedDriver.FullName))); } catch { }
-        
-            // НОВЕ: Оновлення піт-стопів (викликаємо через Task, щоб не зависало)
-            Task.Run(() => 
-            {
-                string avgStop = GetAvgPitStopTime(selectedDriver.DriverId);
-                Dispatcher.Invoke(() => PitStopText.Text = avgStop);
-            });
+            DriverPhoto.Source = new BitmapImage(new Uri(GetDriverPhotoUrl(selectedDriver.FullName)));
         }
+        catch 
+        { 
+            // Якщо фото не завантажилось - нічого страшного, залишиться пустим або старим
+        }
+
+        // --- ПІДГОТОВКА ФІЛЬТРУ (ТРАСА) ---
+        // Перевіряємо, чи увімкнений перемикач "Тільки ця траса"
+        bool isTrackSpecific = TrackFilterToggle.IsChecked == true;
+        float currentCircuitId = -1;
+
+        if (CircuitCombo.SelectedValue != null)
+        {
+            currentCircuitId = Convert.ToSingle(CircuitCombo.SelectedValue);
+        }
+
+        // --- ОБЧИСЛЕННЯ В ФОНІ (Task.Run) ---
+        // Робимо це в окремому потоці, щоб інтерфейс не "зависав" на секунду
+        Task.Run(() =>
+        {
+            // А. Отримуємо середній піт-стоп (загальний)
+            string avgStop = GetAvgPitStopTime(selectedDriver.DriverId);
+
+            // Б. Отримуємо надійність
+            // Якщо isTrackSpecific == true, передаємо ID траси. Якщо ні -> передаємо -1.
+            double reliability = GetReliabilityStats(selectedDriver.DriverId, isTrackSpecific ? currentCircuitId : -1);
+
+            // --- ОНОВЛЕННЯ UI (Dispatcher) ---
+            Dispatcher.Invoke(() =>
+            {
+                // 1. Виводимо час піт-стопу
+                if (PitStopText != null)
+                    PitStopText.Text = avgStop;
+
+                // 2. Виводимо надійність
+                if (ReliabilityText != null && ReliabilityBar != null)
+                {
+                    ReliabilityText.Text = $"{reliability:F0}%"; // Наприклад "85%"
+                    ReliabilityBar.Value = reliability;          // Заповнюємо коло
+
+                    // 3. Змінюємо колір залежно від відсотка
+                    if (reliability >= 90)
+                        ReliabilityBar.Foreground = System.Windows.Media.Brushes.LightGreen; // Відмінно
+                    else if (reliability >= 75)
+                        ReliabilityBar.Foreground = System.Windows.Media.Brushes.Orange;     // Нормально
+                    else
+                        ReliabilityBar.Foreground = System.Windows.Media.Brushes.Red;        // Погано
+                }
+            });
+        });
     }
+}
     private void UpdateChart()
     {
-        if (DriverCombo.SelectedValue == null) return;
+        if (DriverCombo.SelectedValue == null || CircuitCombo.SelectedValue == null) return;
+
         float driverId = Convert.ToSingle(DriverCombo.SelectedValue);
+        float circuitId = Convert.ToSingle(CircuitCombo.SelectedValue);
+    
+        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        string resultsPath = Path.Combine(baseDir, "Data", "results.csv");
+        string racesPath = Path.Combine(baseDir, "Data", "races.csv"); // Потрібен для фільтрації
 
-        // Отримуємо подвійні дані (Кваліфікація + Гонка)
-        var performance = GetDriverPerformance(driverId);
+        List<float> history;
 
-        if (performance.Count == 0) return;
+        // --- ГОЛОВНА ЛОГІКА ПЕРЕМИКАЧА ---
+        if (TrackFilterToggle.IsChecked == true)
+        {
+            // ВАРІАНТ А: Тільки ця траса (наприклад, тільки результати в Монако за всі роки)
+            history = F1Predictor.ML.DataProcessor.GetDriverResultsAtCircuit(driverId, circuitId, resultsPath, racesPath);
+        }
+        else
+        {
+            // ВАРІАНТ Б: Загальна форма (останні 10 гонок будь-де)
+            // (Тобі треба мати метод GetDriverRecentResults, ми його робили раніше. 
+            //  Якщо немає - скопіюй логіку з DataHelpers)
+            history = F1Predictor.ML.DataProcessor.GetDriverRecentResults(driverId, resultsPath, 10);
+        }
 
+        if (history.Count == 0) 
+        {
+            StatsChart.Series = null;
+            return;
+        }
+
+        // Малюємо графік
         StatsChart.Series = new SeriesCollection
         {
-            // Лінія 1: Кваліфікація (Синя, пунктирна)
             new LineSeries
             {
-                Title = "Кваліфікація",
-                Values = new ChartValues<double>(performance.Select(x => x.QualiPos)),
-                PointGeometry = DefaultGeometries.Square,
-                PointGeometrySize = 10,
-                Stroke = System.Windows.Media.Brushes.DodgerBlue,
-                Fill = System.Windows.Media.Brushes.Transparent, // Без заливки
-                StrokeDashArray = new System.Windows.Media.DoubleCollection { 2 } // Пунктирна лінія
-            },
-            
-            // Лінія 2: Гонка (Червона, суцільна)
-            new LineSeries
-            {
-                Title = "Фініш",
-                Values = new ChartValues<double>(performance.Select(x => x.RacePos)),
+                Title = TrackFilterToggle.IsChecked == true ? "Позиція на цій трасі" : "Позиція в сезоні",
+                Values = new ChartValues<float>(history),
                 PointGeometry = DefaultGeometries.Circle,
-                PointGeometrySize = 12,
-                Stroke = System.Windows.Media.Brushes.Red,
-                Fill = System.Windows.Media.Brushes.Transparent, // Можна додати легку червону заливку
-                StrokeThickness = 3
+                PointGeometrySize = 10,
+                LineSmoothness = 0
             }
         };
-        
-        // Оновлюємо підписи осей, якщо треба
+    
+        // Оновлюємо підпис осі X
+        StatsChart.AxisX[0].Title = TrackFilterToggle.IsChecked == true ? "Роки (на цій трасі)" : "Останні гонки";
     }
     private void CircuitCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -279,25 +336,36 @@ public partial class MainWindow : Window
     }
     private string GetAvgPitStopTime(float driverId)
     {
-        string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "pit_stops.csv");
-    
-        // Це може зайняти час, тому в реальному проекті це кешують, але для курсової ок
-        var allStops = CsvDataLoader.LoadPitStops(path);
-    
-        var driverStops = allStops
-            .Where(p => p.DriverId == driverId)
-            .Select(p => p.Seconds)
-            .ToList();
+        try
+        {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "pit_stops.csv");
+            if (!File.Exists(path)) return "---";
 
-        if (driverStops.Count == 0) return "Немає даних";
+            var validStops = File.ReadAllLines(path)
+                .Skip(1)
+                .Select(line => line.Split(','))
+                // 1. Шукаємо нашого водія (index 1)
+                .Where(p => int.Parse(p[1]) == (int)driverId)
+                // 2. Беремо час у мілісекундах (index 6)
+                .Select(p => int.Parse(p[6]))
+                // 3. ФІЛЬТР: Відкидаємо ремонти і простої (все, що довше 35 секунд / 35000 мс)
+                .Where(ms => ms < 35000) 
+                .ToList();
 
-        // Відфільтруємо аномалії (наприклад, піт-стопи довші 40 секунд - це ремонт, а не заміна коліс)
-        var cleanStops = driverStops.Where(t => t < 40).ToList();
-    
-        if (cleanStops.Count == 0) return "---";
+            if (validStops.Count == 0) return "Немає даних";
 
-        double avg = cleanStops.Average();
-        return $"{avg:F2} сек";
+            // Рахуємо середнє і переводимо в секунди (це час проїзду по піт-лейну)
+            // В середньому це 20-25 сек. Якщо хочеш чистий час механіків, треба іншу колонку (duration),
+            // але вона в CSV часто записана текстом ("22.123"), що складно парсити. 
+            // Тому мілісекунди - найнадійніший варіант.
+            double avgSeconds = validStops.Average() / 1000.0;
+        
+            return $"{avgSeconds:F2} с";
+        }
+        catch
+        {
+            return "---";
+        }
     }
     // Додай цей клас-модель прямо всередині MainWindow.xaml.cs або окремо
     public class RacePerformance
@@ -421,6 +489,56 @@ public partial class MainWindow : Window
                 Fill = System.Windows.Media.Brushes.Red // Червоний колір
             }
         };
+    }
+    // Додали параметр circuitId (якщо -1, то беремо всі траси)
+    private double GetReliabilityStats(float driverId, float circuitId = -1)
+    {
+        try
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string resultsPath = Path.Combine(baseDir, "Data", "results.csv");
+            string racesPath = Path.Combine(baseDir, "Data", "races.csv"); // Треба для зв'язку RaceId -> CircuitId
+
+            if (!File.Exists(resultsPath)) return 0;
+
+            // 1. Читаємо результати
+            var query = File.ReadAllLines(resultsPath)
+                .Skip(1)
+                .Select(line => line.Split(','))
+                .Where(p => float.TryParse(p[2], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out float id) && id == driverId)
+                .Select(p => new 
+                { 
+                    RaceId = float.Parse(p[1], System.Globalization.CultureInfo.InvariantCulture), 
+                    StatusId = int.Parse(p[p.Length - 1]) // Остання колонка
+                });
+
+            // 2. Якщо увімкнено фільтр по трасі - треба відсіяти зайві гонки
+            if (circuitId != -1)
+            {
+                // Завантажуємо список ID гонок, які проходили на цій трасі
+                var validRaceIds = File.ReadAllLines(racesPath)
+                    .Skip(1)
+                    .Select(line => line.Split(','))
+                    .Where(p => float.Parse(p[3], System.Globalization.CultureInfo.InvariantCulture) == circuitId)
+                    .Select(p => float.Parse(p[0], System.Globalization.CultureInfo.InvariantCulture))
+                    .ToHashSet();
+
+                query = query.Where(x => validRaceIds.Contains(x.RaceId));
+            }
+
+            var races = query.ToList();
+
+            if (races.Count == 0) return 0;
+
+            int finishedCount = races.Count(s => s.StatusId == 1 || (s.StatusId >= 11 && s.StatusId <= 19));
+            return (double)finishedCount / races.Count * 100.0;
+        }
+        catch { return 0; }
+    }
+    private void Filter_Changed(object sender, RoutedEventArgs e)
+    {
+        // Просто оновлюємо всі графіки при перемиканні
+        DriverCombo_SelectionChanged(null, null);
     }
     private string GetDriverPhotoUrl(string driverName)
     {

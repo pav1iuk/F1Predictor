@@ -60,7 +60,19 @@
                                       Style="{StaticResource MaterialDesignFloatingHintComboBox}" Margin="0,0,0,20"
                                       DisplayMemberPath="Name" SelectedValuePath="ConstructorId"
                                       IsEditable="True" SelectionChanged="TeamCombo_SelectionChanged"/>
-
+                            <StackPanel Margin="0,10,0,10">
+                                <TextBlock Text="Режим аналізу:" Foreground="Gray" FontSize="10" Margin="0,0,0,5"/>
+                                <DockPanel>
+                                    <TextBlock Text="Загальна форма" VerticalAlignment="Center" Foreground="Gray" FontSize="11"/>
+        
+                                    <ToggleButton x:Name="TrackFilterToggle" Margin="10,0"
+                                                  Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                                  ToolTip="Увімкніть, щоб дивитись статистику тільки для цієї траси"
+                                                  Checked="Filter_Changed" Unchecked="Filter_Changed"/>
+                      
+                                    <TextBlock Text="Тільки ця траса" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}" FontWeight="Bold" FontSize="11"/>
+                                </DockPanel>
+                            </StackPanel>
                             <TextBlock Text="Стартова позиція (Grid)" Margin="0,10,0,5" Foreground="Gray"/>
                             <DockPanel Margin="0,0,0,30">
                                 <TextBlock Text="{Binding ElementName=GridSlider, Path=Value}" DockPanel.Dock="Right" FontWeight="Bold" Margin="10,0,0,0" FontSize="16"/>
@@ -86,8 +98,8 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                
-                                <StackPanel Grid.Column="0" Orientation="Vertical" Margin="0,0,20,0">
+                                    
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,20,0">
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                         <Border Width="80" Height="80" CornerRadius="40" Background="#333" Margin="0,0,10,0" ClipToBounds="True">
                                             <Image x:Name="DriverPhoto" Stretch="UniformToFill"/>
@@ -104,6 +116,17 @@
                                         <StackPanel>
                                             <TextBlock Text="Сер. піт-стоп:" Foreground="Gray" FontSize="10"/>
                                             <TextBlock x:Name="PitStopText" Text="---" FontWeight="Bold" Foreground="#FFD700" FontSize="14"/>
+                                        </StackPanel>
+                                    </materialDesign:Card>
+                                    
+                                    <materialDesign:Card Padding="10" Background="#303030" UniformCornerRadius="5">
+                                        <StackPanel>
+                                            <TextBlock Text="Надійність:" Foreground="Gray" FontSize="10" Margin="0,0,0,5"/>
+                                            <Grid>
+                                                <ProgressBar x:Name="ReliabilityBar" Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                                             Value="0" Maximum="100" Width="40" Height="40" Foreground="#4CAF50"/>
+                                                <TextBlock x:Name="ReliabilityText" Text="0%" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" FontWeight="Bold"/>
+                                            </Grid>
                                         </StackPanel>
                                     </materialDesign:Card>
                                 </StackPanel>
