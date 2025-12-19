@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using F1Predictor.Core;
 using F1Predictor.Data; // Наш новий проект
 using F1Predictor.ML;
@@ -66,66 +67,131 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ButtonPredict_Click(object sender, RoutedEventArgs e)
+private void ButtonPredict_Click(object sender, RoutedEventArgs e)
+{
+    // 1. Перевірка на завантаження ШІ
+    if (_predictor == null)
     {
-        // Перевірка на завантаження ШІ
-        if (_predictor == null)
+        ResultText.Text = "Помилка: Модель не готова";
+        ResultText.Foreground = System.Windows.Media.Brushes.Red;
+        return;
+    }
+
+    try
+    {
+        // 2. Перевірка чи все обрано
+        if (DriverCombo.SelectedValue == null || 
+            TeamCombo.SelectedValue == null || 
+            CircuitCombo.SelectedValue == null)
         {
-            ResultText.Text = "Помилка: Модель не завантажена";
-            ResultText.Foreground = System.Windows.Media.Brushes.Red;
+            MessageBox.Show("Будь ласка, оберіть пілота, команду та трасу!", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        try
+        // 3. Збираємо вхідні дані
+        float driverId = Convert.ToSingle(DriverCombo.SelectedValue);
+        float teamId = Convert.ToSingle(TeamCombo.SelectedValue);
+        float circuitId = Convert.ToSingle(CircuitCombo.SelectedValue);
+        float grid = (float)GridSlider.Value;
+
+        // 4. Робимо прогноз (отримуємо "сире" число, наприклад 2.45)
+        float rawResult = _predictor.Predict(driverId, teamId, grid, circuitId);
+        if (WeatherToggle.IsChecked == true)
         {
-            // Перевірка на вибір користувача
-            if (DriverCombo.SelectedValue == null || TeamCombo.SelectedValue == null)
-            {
-                MessageBox.Show("Будь ласка, оберіть пілота та команду!");
-                return;
-            }
+            // Дощ вносить хаос!
+            Random rainChaos = new Random();
+    
+            // Генеруємо випадкове число від -1.5 до +3.5
+            // Це означає: пілот може випадково відіграти 1.5 місця (майстерність)
+            // Або втратити 3.5 місця (помилка на слизькій трасі)
+            float chaosFactor = (float)(rainChaos.NextDouble() * 5.0 - 1.5);
+    
+            rawResult += chaosFactor;
 
-            // 1. Отримуємо дані (Безпечний метод!)
-            float driverId = Convert.ToSingle(DriverCombo.SelectedValue);
-            float teamId = Convert.ToSingle(TeamCombo.SelectedValue);
-            float grid = (float)GridSlider.Value;
-            if (CircuitCombo.SelectedValue == null) 
-            {
-                MessageBox.Show("Оберіть трасу!"); return;
-            }
-            float circuitId = Convert.ToSingle(CircuitCombo.SelectedValue);
-            // 2. Робимо прогноз
-            float result = _predictor.Predict(driverId, teamId, grid, circuitId);
-            var driverObj = DriverCombo.SelectedItem as Driver; // using F1Predictor.Core
-            var teamObj = TeamCombo.SelectedItem as Team;
-            var circuitObj = CircuitCombo.SelectedItem as Circuit;
-
-            var record = new PredictionHistory
-            {
-                DriverName = driverObj?.FullName ?? "Unknown",
-                TeamName = teamObj?.Name ?? "Unknown",
-                CircuitName = circuitObj?.Name ?? "Unknown",
-                GridPosition = (int)grid,
-                PredictedPosition = result,
-                Date = DateTime.Now
-            };
-
-            _historyService.AddRecord(record);
-            // 3. Виводимо результат
-            // Округляємо до цілого числа (наприклад, 3.2 -> 3 місце)
-            int position = (int)Math.Round(result);
-        
-            ResultText.Text = $"{position} місце";
-        
-            // Можна додати колір залежно від місця
-            if (position == 1) 
-                ResultText.Text += " 🏆 (Перемога!)";
+            // Штраф за погану надійність у дощ
+            // Якщо пілот ненадійний, у дощ він ще більше втрачає
+            // (Можна додати, якщо хочеш ускладнити, але Random вже достатньо)
         }
-        catch (Exception ex)
+        // --- ЛОГІКА ОБРОБКИ РЕЗУЛЬТАТУ ---
+        int finalPosition;
+
+        // ХИТРІСТЬ: Якщо прогноз дуже близький до перемоги (менше 1.6), примусово ставимо 1.
+        // Це виправляє "сором'язливість" моделі, яка часто дає 2 або 3 лідерам.
+        if (rawResult <= 1.6f)
         {
-            MessageBox.Show($"Помилка: {ex.Message}");
+            finalPosition = 1;
+        }
+        else
+        {
+            // Звичайне математичне округлення (3.6 -> 4, 3.2 -> 3)
+            finalPosition = (int)Math.Round(rawResult);
+        }
+
+        // ЗАХИСТ: Місце не може бути менше 1 і більше 20
+        if (finalPosition < 1) finalPosition = 1;
+        if (finalPosition > 20) finalPosition = 20;
+
+        // 5. Зберігаємо в історію (База Даних)
+        var driverObj = DriverCombo.SelectedItem as Driver;
+        var teamObj = TeamCombo.SelectedItem as Team;
+        var circuitObj = CircuitCombo.SelectedItem as Circuit;
+
+        var record = new PredictionHistory
+        {
+            DriverName = driverObj?.FullName ?? "Unknown",
+            TeamName = teamObj?.Name ?? "Unknown",
+            CircuitName = circuitObj?.Name ?? "Unknown",
+            GridPosition = (int)grid,
+            PredictedPosition = rawResult, // Зберігаємо точне число для точності історії
+            Date = DateTime.Now
+        };
+
+        _historyService.AddRecord(record);
+
+        // !!! ОНОВЛЮЄМО ТАБЛИЦЮ ІСТОРІЇ МИТТЄВО !!!
+        if (HistoryGrid != null)
+        {
+            HistoryGrid.ItemsSource = _historyService.GetAll();
+        }
+
+        // 6. Виводимо красивий результат на екран
+        ResultText.Text = $"{finalPosition} місце";
+        var animation = new System.Windows.Media.Animation.DoubleAnimation
+        {
+            From = 0.0,   // Починаємо з розміру 0 (невидимий)
+            To = 1.0,     // Збільшуємо до нормального розміру
+            Duration = TimeSpan.FromMilliseconds(500), // Триває пів секунди
+            EasingFunction = new System.Windows.Media.Animation.BackEase { Amplitude = 0.5 } // Ефект пружини в кінці
+        };
+
+// Запускаємо анімацію для ширини і висоти
+        ResultText.RenderTransform.BeginAnimation(ScaleTransform.ScaleXProperty, animation);
+        ResultText.RenderTransform.BeginAnimation(ScaleTransform.ScaleYProperty, animation);
+        // Змінюємо колір тексту залежно від результату
+        if (finalPosition == 1)
+        {
+            ResultText.Foreground = System.Windows.Media.Brushes.Gold;
+            ResultText.Text += " 🏆"; // Додаємо кубок
+        }
+        else if (finalPosition <= 3)
+        {
+            ResultText.Foreground = System.Windows.Media.Brushes.LightGreen; // Подіум
+        }
+        else if (finalPosition >= 15)
+        {
+            ResultText.Foreground = System.Windows.Media.Brushes.OrangeRed; // Хвіст пелотону
+        }
+        else
+        {
+            ResultText.Foreground = System.Windows.Media.Brushes.White; // Середина (або Red, якщо у тебе світла тема, але краще White для темної)
+            // Якщо у тебе світлий фон карток, використай Brushes.DarkGray або Brushes.Black
         }
     }
+    catch (Exception ex)
+    {
+        MessageBox.Show($"Критична помилка: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+    }
+}
     private void HistoryTab_Selected(object sender, RoutedEventArgs e)
     {
         // Завантажуємо дані з БД і показуємо в таблиці
@@ -155,10 +221,10 @@ public partial class MainWindow : Window
     }
     private void DriverCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
 {
-    // 1. Спочатку оновлюємо графік (він має свою логіку перемикача)
+    // 1. Спочатку оновлюємо графік
     UpdateChart();
 
-    // 2. Перевіряємо, чи дійсно обрано водія (щоб уникнути помилок при очищенні)
+    // 2. Перевіряємо, чи дійсно обрано водія
     if (DriverCombo.SelectedItem is Driver selectedDriver)
     {
         // --- ОНОВЛЕННЯ ФОТО ---
@@ -168,29 +234,36 @@ public partial class MainWindow : Window
         }
         catch 
         { 
-            // Якщо фото не завантажилось - нічого страшного, залишиться пустим або старим
+            // Ігноруємо помилки завантаження фото
         }
 
-        // --- ПІДГОТОВКА ФІЛЬТРУ (ТРАСА) ---
-        // Перевіряємо, чи увімкнений перемикач "Тільки ця траса"
+        // --- ЗЧИТУВАННЯ НАЛАШТУВАНЬ (UI Thread) ---
+        // Важливо зчитати це ДО запуску Task.Run, щоб не було конфлікту потоків
         bool isTrackSpecific = TrackFilterToggle.IsChecked == true;
-        float currentCircuitId = -1;
+        bool isRain = WeatherToggle.IsChecked == true; // <--- НОВЕ: Перевірка погоди
 
+        float currentCircuitId = -1;
         if (CircuitCombo.SelectedValue != null)
         {
             currentCircuitId = Convert.ToSingle(CircuitCombo.SelectedValue);
         }
 
         // --- ОБЧИСЛЕННЯ В ФОНІ (Task.Run) ---
-        // Робимо це в окремому потоці, щоб інтерфейс не "зависав" на секунду
         Task.Run(() =>
         {
-            // А. Отримуємо середній піт-стоп (загальний)
+            // А. Отримуємо середній піт-стоп
             string avgStop = GetAvgPitStopTime(selectedDriver.DriverId);
 
-            // Б. Отримуємо надійність
-            // Якщо isTrackSpecific == true, передаємо ID траси. Якщо ні -> передаємо -1.
+            // Б. Отримуємо базову надійність
+            // (Враховуємо фільтр траси, якщо він увімкнений)
             double reliability = GetReliabilityStats(selectedDriver.DriverId, isTrackSpecific ? currentCircuitId : -1);
+
+            // --- В. ЗАСТОСОВУЄМО ЕФЕКТ ДОЩУ ---
+            if (isRain)
+            {
+                // Якщо йде дощ, надійність падає на 20%
+                reliability = reliability * 0.8; 
+            }
 
             // --- ОНОВЛЕННЯ UI (Dispatcher) ---
             Dispatcher.Invoke(() =>
@@ -202,7 +275,7 @@ public partial class MainWindow : Window
                 // 2. Виводимо надійність
                 if (ReliabilityText != null && ReliabilityBar != null)
                 {
-                    ReliabilityText.Text = $"{reliability:F0}%"; // Наприклад "85%"
+                    ReliabilityText.Text = $"{reliability:F0}%"; // Наприклад "68%"
                     ReliabilityBar.Value = reliability;          // Заповнюємо коло
 
                     // 3. Змінюємо колір залежно від відсотка
@@ -211,7 +284,7 @@ public partial class MainWindow : Window
                     else if (reliability >= 75)
                         ReliabilityBar.Foreground = System.Windows.Media.Brushes.Orange;     // Нормально
                     else
-                        ReliabilityBar.Foreground = System.Windows.Media.Brushes.Red;        // Погано
+                        ReliabilityBar.Foreground = System.Windows.Media.Brushes.Red;        // Погано (або дощ)
                 }
             });
         });
@@ -241,39 +314,42 @@ public partial class MainWindow : Window
     // Малюємо ДВІ лінії
     StatsChart.Series = new SeriesCollection
     {
-        // Лінія 1: Кваліфікація (Синя, пунктирна)
-        new LineSeries
-        {
-            Title = "Кваліфікація",
+        // Лінія 1: Кваліфікація (залишаємо як є, пунктиром)
+        new LineSeries 
+        { 
+            Title = "Кваліфікація", 
             Values = new ChartValues<double>(performance.Select(x => x.QualiPos)),
-            PointGeometry = DefaultGeometries.Square,
-            PointGeometrySize = 8,
             Stroke = System.Windows.Media.Brushes.DodgerBlue,
-            Fill = System.Windows.Media.Brushes.Transparent,
-            StrokeDashArray = new System.Windows.Media.DoubleCollection { 2 } // Пунктир
+            Fill = System.Windows.Media.Brushes.Transparent, // Тут пусто
+            PointGeometry = DefaultGeometries.Square,
+            StrokeDashArray = new System.Windows.Media.DoubleCollection { 2 }
         },
-        
-        // Лінія 2: Гонка (Червона, жирна)
+
+        // Лінія 2: Гонка (РОБИМО КРАСИВОЮ)
         new LineSeries
         {
             Title = "Фініш",
             Values = new ChartValues<double>(performance.Select(x => x.RacePos)),
             PointGeometry = DefaultGeometries.Circle,
-            PointGeometrySize = 10,
+            PointGeometrySize = 15, // Збільшили крапки
+            StrokeThickness = 4,    // Жирніша лінія
             Stroke = System.Windows.Media.Brushes.Red,
-            StrokeThickness = 3,
-            Fill = System.Windows.Media.Brushes.Transparent // Або light red якщо хочеш заливку
+        
+            // ГРАДІЄНТНА ЗАЛИВКА ПІД ЛІНІЄЮ
+            Fill = new System.Windows.Media.LinearGradientBrush
+            {
+                StartPoint = new System.Windows.Point(0, 0),
+                EndPoint = new System.Windows.Point(0, 1),
+                GradientStops = new System.Windows.Media.GradientStopCollection
+                {
+                    // Зверху напівпрозорий червоний
+                    new System.Windows.Media.GradientStop(System.Windows.Media.Color.FromArgb(80, 255, 82, 82), 0), 
+                    // Знизу повністю прозорий
+                    new System.Windows.Media.GradientStop(System.Windows.Media.Colors.Transparent, 1)
+                }
+            }
         }
     };
-
-    // Оновлюємо підписи осі X (щоб писало роки або назви гонок)
-    // StatsChart.AxisX[0].Labels = performance.Select(x => x.RaceName).ToList();
-    
-    // Якщо вісь Y не налаштована в XAML, можна тут:
-    /*
-    StatsChart.AxisY[0].MinValue = 1;
-    StatsChart.AxisY[0].MaxValue = 20;
-    */
 }
     private void CircuitCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -633,6 +709,24 @@ public partial class MainWindow : Window
 
     return data;
 }
+    private void Weather_Changed(object sender, RoutedEventArgs e)
+    {
+        bool isRain = WeatherToggle.IsChecked == true;
+
+        // Змінюємо колір картки
+        if (SettingsCard != null)
+        {
+            // Якщо дощ - темно-синій відтінок (#1A237E - Indigo), якщо сухо - стандартний (або #303030)
+            var brush = isRain 
+                ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#1A237E")) // Rain Color
+                : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#303030")); // Default Color
+            
+            SettingsCard.Background = brush;
+        }
+
+        // Оновлюємо цифри
+        DriverCombo_SelectionChanged(null, null);
+    }
     private string GetDriverPhotoUrl(string driverName)
     {
         string name = driverName.ToLower().Trim();

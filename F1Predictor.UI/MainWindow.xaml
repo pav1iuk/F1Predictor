@@ -17,6 +17,7 @@
         WindowState="Maximized" WindowStartupLocation="CenterScreen">
 
     <Grid>
+        
         <Grid.RowDefinitions>
             <RowDefinition Height="60"/>
             <RowDefinition Height="*"/>
@@ -27,6 +28,7 @@
                 <TextBlock VerticalAlignment="Center" Margin="16 0 0 0" FontSize="24" FontWeight="Bold" Text="🏁 F1 AI PREDICTOR PRO"/>
             </StackPanel>
         </materialDesign:ColorZone>
+        
 
         <TabControl Grid.Row="1" Style="{StaticResource MaterialDesignFilledTabControl}" TabStripPlacement="Left">
             
@@ -42,7 +44,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="350"/> <ColumnDefinition Width="*"/>   </Grid.ColumnDefinitions>
 
-                    <materialDesign:Card Padding="20" Margin="0,0,20,0" UniformCornerRadius="10" materialDesign:ShadowAssist.ShadowDepth="Depth2">
+                    <materialDesign:Card Padding="20" Margin="0,0,20,0" UniformCornerRadius="10" materialDesign:ShadowAssist.ShadowDepth="Depth2" x:Name="SettingsCard">
                         <StackPanel>
                             <TextBlock Text="Налаштування гонки" Style="{StaticResource MaterialDesignHeadline5TextBlock}" Margin="0,0,0,20"/>
 
@@ -73,14 +75,43 @@
                                     <TextBlock Text="Тільки ця траса" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}" FontWeight="Bold" FontSize="11"/>
                                 </DockPanel>
                             </StackPanel>
+                            <StackPanel Margin="0,10,0,10">
+                            </StackPanel>
+
+                            <StackPanel Margin="0,0,0,20">
+                                <TextBlock Text="Погодні умови:" Foreground="Gray" FontSize="10" Margin="0,0,0,5"/>
+                                <DockPanel>
+                                    <TextBlock Text="☀️ Сухо" VerticalAlignment="Center" Foreground="#FFEB3B" FontSize="11"/>
+        
+                                    <ToggleButton x:Name="WeatherToggle" Margin="10,0"
+                                                  Style="{StaticResource MaterialDesignSwitchToggleButton}"
+                                                  ToolTip="Увімкнути дощ (зменшує надійність, збільшує хаос)"
+                                                  Checked="Weather_Changed" Unchecked="Weather_Changed"/>
+                      
+                                    <TextBlock Text="🌧️ Дощ" VerticalAlignment="Center" Foreground="#2196F3" FontWeight="Bold" FontSize="11"/>
+                                </DockPanel>
+                            </StackPanel>
                             <TextBlock Text="Стартова позиція (Grid)" Margin="0,10,0,5" Foreground="Gray"/>
                             <DockPanel Margin="0,0,0,30">
                                 <TextBlock Text="{Binding ElementName=GridSlider, Path=Value}" DockPanel.Dock="Right" FontWeight="Bold" Margin="10,0,0,0" FontSize="16"/>
                                 <Slider x:Name="GridSlider" Minimum="1" Maximum="20" Value="1" TickFrequency="1" IsSnapToTickEnabled="True"/>
                             </DockPanel>
 
-                            <Button Content="РОЗРАХУВАТИ ПРОГНОЗ" Height="50" FontSize="16" Click="ButtonPredict_Click"
-                                    materialDesign:ButtonAssist.CornerRadius="25"/>
+                            <Button Height="50" FontSize="18" FontWeight="Bold" Click="ButtonPredict_Click"
+                                    materialDesign:ButtonAssist.CornerRadius="25"
+                                    Foreground="White" BorderThickness="0">
+                                <Button.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Color="#FF5252" Offset="0.0"/>
+                                        <GradientStop Color="#B71C1C" Offset="1.0"/>
+                                    </LinearGradientBrush>
+                                </Button.Background>
+    
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="FlagCheckered" Width="24" Height="24" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBlock Text="ПРОГНОЗ" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                             
                             <Button Content="Перевірити точність моделі" Margin="0,20,0,0" Style="{StaticResource MaterialDesignOutlinedButton}" Click="ButtonEvaluate_Click"/>
                         </StackPanel>
@@ -101,11 +132,20 @@
                                     
                                 <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,20,0">
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <Border Width="80" Height="80" CornerRadius="40" Background="#333" Margin="0,0,10,0" ClipToBounds="True">
+                                        <Border Width="140" Height="140" CornerRadius="70" Margin="0,0,20,0" ClipToBounds="True"
+                                                BorderBrush="#444" BorderThickness="2">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="20" ShadowDepth="10" Opacity="0.5" Color="Black"/>
+                                            </Border.Effect>
+    
                                             <Image x:Name="DriverPhoto" Stretch="UniformToFill"/>
                                         </Border>
-                                        <Border Width="60" Height="60" CornerRadius="10" Background="White" VerticalAlignment="Center">
-                                            <Image x:Name="TeamLogo" Stretch="Uniform" Margin="5"/>
+
+                                        <Border Width="100" Height="100" CornerRadius="15" Background="White" VerticalAlignment="Center" Margin="0,0,20,0">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="10" ShadowDepth="5" Opacity="0.3"/>
+                                            </Border.Effect>
+                                            <Image x:Name="TeamLogo" Stretch="Uniform" Margin="10"/>
                                         </Border>
                                         <Border Width="100" Height="100" CornerRadius="10" Background="Transparent" VerticalAlignment="Center">
                                             <Image x:Name="CircuitImage" Stretch="Uniform"/>
@@ -133,7 +173,12 @@
 
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                     <TextBlock Text="Прогнозований результат:" Foreground="Gray" FontSize="16"/>
-                                    <TextBlock x:Name="ResultText" Text="---" FontSize="48" FontWeight="Bold" Foreground="#FF5252"/>
+                                    <TextBlock x:Name="ResultText" Text="---" FontSize="48" FontWeight="Bold" Foreground="#FF5252" 
+                                               HorizontalAlignment="Left" RenderTransformOrigin="0.5,0.5">
+                                        <TextBlock.RenderTransform>
+                                            <ScaleTransform ScaleX="1" ScaleY="1"/>
+                                        </TextBlock.RenderTransform>
+                                    </TextBlock>    
                                 </StackPanel>
                             </Grid>
                         </materialDesign:Card>
