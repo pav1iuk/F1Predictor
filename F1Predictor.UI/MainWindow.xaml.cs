@@ -218,54 +218,63 @@ public partial class MainWindow : Window
     }
 }
     private void UpdateChart()
+{
+    // Перевірки на null
+    if (DriverCombo.SelectedValue == null || CircuitCombo.SelectedValue == null) return;
+    
+    // Щоб уникнути помилок при завантаженні форми
+    if (StatsChart == null) return;
+
+    float driverId = Convert.ToSingle(DriverCombo.SelectedValue);
+    float circuitId = Convert.ToSingle(CircuitCombo.SelectedValue);
+    bool isTrackSpecific = TrackFilterToggle.IsChecked == true;
+
+    // Отримуємо детальну статистику (новий метод)
+    var performance = GetDetailedPerformance(driverId, circuitId, isTrackSpecific);
+
+    if (performance.Count == 0) 
     {
-        if (DriverCombo.SelectedValue == null || CircuitCombo.SelectedValue == null) return;
-
-        float driverId = Convert.ToSingle(DriverCombo.SelectedValue);
-        float circuitId = Convert.ToSingle(CircuitCombo.SelectedValue);
-    
-        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        string resultsPath = Path.Combine(baseDir, "Data", "results.csv");
-        string racesPath = Path.Combine(baseDir, "Data", "races.csv"); // Потрібен для фільтрації
-
-        List<float> history;
-
-        // --- ГОЛОВНА ЛОГІКА ПЕРЕМИКАЧА ---
-        if (TrackFilterToggle.IsChecked == true)
-        {
-            // ВАРІАНТ А: Тільки ця траса (наприклад, тільки результати в Монако за всі роки)
-            history = F1Predictor.ML.DataProcessor.GetDriverResultsAtCircuit(driverId, circuitId, resultsPath, racesPath);
-        }
-        else
-        {
-            // ВАРІАНТ Б: Загальна форма (останні 10 гонок будь-де)
-            // (Тобі треба мати метод GetDriverRecentResults, ми його робили раніше. 
-            //  Якщо немає - скопіюй логіку з DataHelpers)
-            history = F1Predictor.ML.DataProcessor.GetDriverRecentResults(driverId, resultsPath, 10);
-        }
-
-        if (history.Count == 0) 
-        {
-            StatsChart.Series = null;
-            return;
-        }
-
-        // Малюємо графік
-        StatsChart.Series = new SeriesCollection
-        {
-            new LineSeries
-            {
-                Title = TrackFilterToggle.IsChecked == true ? "Позиція на цій трасі" : "Позиція в сезоні",
-                Values = new ChartValues<float>(history),
-                PointGeometry = DefaultGeometries.Circle,
-                PointGeometrySize = 10,
-                LineSmoothness = 0
-            }
-        };
-    
-        // Оновлюємо підпис осі X
-        StatsChart.AxisX[0].Title = TrackFilterToggle.IsChecked == true ? "Роки (на цій трасі)" : "Останні гонки";
+        StatsChart.Series = null;
+        return;
     }
+
+    // Малюємо ДВІ лінії
+    StatsChart.Series = new SeriesCollection
+    {
+        // Лінія 1: Кваліфікація (Синя, пунктирна)
+        new LineSeries
+        {
+            Title = "Кваліфікація",
+            Values = new ChartValues<double>(performance.Select(x => x.QualiPos)),
+            PointGeometry = DefaultGeometries.Square,
+            PointGeometrySize = 8,
+            Stroke = System.Windows.Media.Brushes.DodgerBlue,
+            Fill = System.Windows.Media.Brushes.Transparent,
+            StrokeDashArray = new System.Windows.Media.DoubleCollection { 2 } // Пунктир
+        },
+        
+        // Лінія 2: Гонка (Червона, жирна)
+        new LineSeries
+        {
+            Title = "Фініш",
+            Values = new ChartValues<double>(performance.Select(x => x.RacePos)),
+            PointGeometry = DefaultGeometries.Circle,
+            PointGeometrySize = 10,
+            Stroke = System.Windows.Media.Brushes.Red,
+            StrokeThickness = 3,
+            Fill = System.Windows.Media.Brushes.Transparent // Або light red якщо хочеш заливку
+        }
+    };
+
+    // Оновлюємо підписи осі X (щоб писало роки або назви гонок)
+    // StatsChart.AxisX[0].Labels = performance.Select(x => x.RaceName).ToList();
+    
+    // Якщо вісь Y не налаштована в XAML, можна тут:
+    /*
+    StatsChart.AxisY[0].MinValue = 1;
+    StatsChart.AxisY[0].MaxValue = 20;
+    */
+}
     private void CircuitCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         UpdateChart(); // Твій старий метод
@@ -371,6 +380,7 @@ public partial class MainWindow : Window
     public class RacePerformance
     {
         public int RaceNumber { get; set; } // Просто 1, 2, 3... для осі X
+        public string RaceName { get; set; }
         public double QualiPos { get; set; }
         public double RacePos { get; set; }
     }
@@ -540,6 +550,89 @@ public partial class MainWindow : Window
         // Просто оновлюємо всі графіки при перемиканні
         DriverCombo_SelectionChanged(null, null);
     }
+    private List<RacePerformance> GetDetailedPerformance(float driverId, float circuitId, bool isTrackSpecific)
+{
+    string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+    string resultsPath = Path.Combine(baseDir, "Data", "results.csv");
+    string qualiPath = Path.Combine(baseDir, "Data", "qualifying.csv");
+    string racesPath = Path.Combine(baseDir, "Data", "races.csv");
+
+    // 1. Вантажимо Кваліфікації (всі для цього пілота)
+    // (Припускаємо, що метод CsvDataLoader.LoadQualifying існує, ми його робили раніше)
+    var allQualis = CsvDataLoader.LoadQualifying(qualiPath)
+        .Where(q => q.DriverId == driverId)
+        .ToList();
+
+    // 2. Вантажимо структуру Гонок (щоб знати трасу і дату)
+    var allRacesInfo = File.ReadAllLines(racesPath).Skip(1)
+        .Select(line => line.Split(','))
+        .Select(p => new 
+        { 
+            RaceId = int.Parse(p[0]), 
+            Year = int.Parse(p[1]),
+            CircuitId = int.Parse(p[3]),
+            Name = p[4].Trim('"')
+        })
+        .ToList();
+
+    // 3. Вантажимо Результати (Race Positions)
+    var driverResults = File.ReadAllLines(resultsPath).Skip(1)
+        .Select(line => line.Split(','))
+        .Where(p => float.TryParse(p[2], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out float id) && id == driverId)
+        .Select(p => new 
+        { 
+            RaceId = int.Parse(p[1]), 
+            Pos = int.Parse(p[8]) 
+        })
+        .ToList();
+
+    // 4. ФІЛЬТРАЦІЯ
+    List<int> targetRaceIds;
+
+    if (isTrackSpecific)
+    {
+        // Беремо тільки гонки на цій трасі
+        targetRaceIds = allRacesInfo
+            .Where(r => r.CircuitId == (int)circuitId)
+            .OrderBy(r => r.Year) // Сортуємо хронологічно
+            .Select(r => r.RaceId)
+            .ToList();
+    }
+    else
+    {
+        // Беремо останні 15 гонок (Загальна форма)
+        targetRaceIds = driverResults
+            .OrderByDescending(r => r.RaceId) // Спочатку нові
+            .Take(15)
+            .Select(r => r.RaceId)
+            .OrderBy(id => id) // Але на графіку малюємо зліва направо (старі -> нові)
+            .ToList();
+    }
+
+    // 5. Збираємо фінальний список (JOIN)
+    var data = new List<RacePerformance>();
+    int counter = 1;
+
+    foreach (var rId in targetRaceIds)
+    {
+        var raceRes = driverResults.FirstOrDefault(r => r.RaceId == rId);
+        if (raceRes == null) continue; // Таке буває, якщо пілот пропустив гонку
+
+        var raceInfo = allRacesInfo.FirstOrDefault(r => r.RaceId == rId);
+        var qualiRes = allQualis.FirstOrDefault(q => q.RaceId == rId);
+
+        data.Add(new RacePerformance
+        {
+            RaceNumber = counter++,
+            RaceName = isTrackSpecific ? raceInfo?.Year.ToString() : raceInfo?.Name, // Якщо траса одна - показуємо рік, якщо різні - назву
+            RacePos = raceRes.Pos,
+            // Якщо немає кваліфікації, ставимо те саме місце, що і в гонці (щоб графік не падав в нуль)
+            QualiPos = qualiRes != null ? qualiRes.Position : raceRes.Pos 
+        });
+    }
+
+    return data;
+}
     private string GetDriverPhotoUrl(string driverName)
     {
         string name = driverName.ToLower().Trim();
