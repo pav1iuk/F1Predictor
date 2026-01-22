@@ -729,94 +729,15 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
     }
     private string GetDriverPhotoUrl(string driverName)
     {
-        string name = driverName.ToLower().Trim();
-
-        if (name.Contains("verstappen")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/2col/image.png";
-        if (name.Contains("hamilton")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/LEWHAM01_Lewis_Hamilton/lewham01.png.transform/2col/image.png";
-        if (name.Contains("leclerc")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CHALEC01_Charles_Leclerc/chalec01.png.transform/2col/image.png";
-        if (name.Contains("norris")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/L/兰NOR01_Lando_Norris/lannor01.png.transform/2col/image.png"; // URL може змінюватися, це приклад
-        if (name.Contains("alonso")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/F/FERALO01_Fernando_Alonso/feralo01.png.transform/2col/image.png";
-        if (name.Contains("sainz")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/C/CARSAI01_Carlos_Sainz/carsai01.png.transform/2col/image.png";
-        if (name.Contains("russell")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/G/GEORUS01_George_Russell/georus01.png.transform/2col/image.png";
-        if (name.Contains("piastri")) return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/O/OSCPIA01_Oscar_Piastri/oscpia01.png.transform/2col/image.png";
-    
-        // Заглушка (шолом)
-        return "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/driver_fallback_image.png";
+        return ImageHelper.GetDriverUrl(driverName);
     }
     private string GetCircuitMapUrl(string circuitName)
     {
-        string name = circuitName.ToLower();
-
-        if (name.Contains("monaco")) return "https://media.formula1.com/image/upload/f_auto/q_auto/v1677244984/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Monaco_Circuit.png";
-        if (name.Contains("monza")) return "https://media.formula1.com/image/upload/f_auto/q_auto/v1677244987/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Italy_Circuit.png";
-        if (name.Contains("silverstone")) return "https://media.formula1.com/image/upload/f_auto/q_auto/v1677244985/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Great_Britain_Circuit.png";
-        if (name.Contains("spa")) return "https://media.formula1.com/image/upload/f_auto/q_auto/v1677244982/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Belgium_Circuit.png";
-        if (name.Contains("suzuka")) return "https://media.formula1.com/image/upload/f_auto/q_auto/v1677244985/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Japan_Circuit.png";
-    
-        // Заглушка (карта світу)
-        return "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/World_Map_Blank.svg/640px-World_Map_Blank.svg.png";
+        return ImageHelper.GetCircuitUrl(circuitName);
     }
     private string GetTeamLogoUrl(string teamName)
-{
-    string name = teamName.ToLower().Trim();
-
-    // --- АКТУАЛЬНІ КОМАНДИ (PNG посилання) ---
-
-    // Red Bull
-    if (name.Contains("red bull")) 
-        return "https://upload.wikimedia.org/wikipedia/de/thumb/c/c4/Red_Bull_Racing_logo.svg/2560px-Red_Bull_Racing_logo.svg.png";
-
-    // Ferrari
-    if (name.Contains("ferrari")) 
-        return "https://upload.wikimedia.org/wikipedia/de/thumb/c/c0/Scuderia_Ferrari_Logo.svg/1024px-Scuderia_Ferrari_Logo.svg.png";
-
-    // Mercedes
-    if (name.Contains("mercedes") || name.Contains("brawn") || name.Contains("tyrrell") || name.Contains("bar")) 
-        return "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Mercedes_AMG_Petronas_F1_Logo.svg/2560px-Mercedes_AMG_Petronas_F1_Logo.svg.png";
-
-    // McLaren
-    if (name.Contains("mclaren")) 
-        return "https://upload.wikimedia.org/wikipedia/en/thumb/6/66/McLaren_Racing_logo.svg/2560px-McLaren_Racing_logo.svg.png";
-
-    // Aston Martin (Racing Point, Force India, Jordan)
-    if (name.Contains("aston martin") || name.Contains("racing point") || name.Contains("force india") || name.Contains("jordan")) 
-        return "https://upload.wikimedia.org/wikipedia/fr/thumb/7/72/Aston_Martin_Aramco_Cognizant_F1.svg/2560px-Aston_Martin_Aramco_Cognizant_F1.svg.png";
-
-    // Alpine (Renault, Benetton)
-    if (name.Contains("alpine") || name.Contains("renault") || name.Contains("benetton")) 
-        return "https://upload.wikimedia.org/wikipedia/fr/thumb/6/60/Alpine_F1_Team_2021_Logo.svg/2560px-Alpine_F1_Team_2021_Logo.svg.png";
-
-    // Williams
-    if (name.Contains("williams")) 
-        return "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Williams_Racing_2020_logo.png/800px-Williams_Racing_2020_logo.png";
-
-    // Haas
-    if (name.Contains("haas")) 
-        return "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Haas_F1_Team_logo.svg/2560px-Haas_F1_Team_logo.svg.png";
-
-    // RB (AlphaTauri, Toro Rosso, Minardi)
-    if (name.Contains("rb") || name.Contains("visa") || name.Contains("alphatauri") || name.Contains("toro rosso") || name.Contains("minardi"))
-        return "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Visa_Cash_App_RB_F1_Team_logo.svg/2560px-Visa_Cash_App_RB_F1_Team_logo.svg.png";
-
-    // Kick Sauber (Alfa Romeo, Sauber)
-    if (name.Contains("kick") || name.Contains("sauber") || name.Contains("alfa romeo") || name.Contains("bmw"))
-        return "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Kick_Sauber_F1_Team_logo.svg/2560px-Kick_Sauber_F1_Team_logo.svg.png";
-
-    // --- ІСТОРИЧНІ ---
-
-    // Team Lotus
-    if (name.Contains("lotus")) 
-        return "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Lotus_F1_Team_Logo.svg/800px-Lotus_F1_Team_Logo.svg.png";
-
-    // Brabham
-    if (name.Contains("brabham")) 
-        return "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Brabham_Logo.png/800px-Brabham_Logo.png";
-
-    // Toyota
-    if (name.Contains("toyota")) 
-        return "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Panasonic_Toyota_Racing_logo.svg/2560px-Panasonic_Toyota_Racing_logo.svg.png";
-
-    // Заглушка (PNG)
-    return "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/F1.svg/2560px-F1.svg.png";
-}
+    {
+        // Тобі треба додати виклик цього методу в DriverCombo_SelectionChanged, якщо його там ще немає
+        return ImageHelper.GetTeamUrl(teamName);
+    }
 }
