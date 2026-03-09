@@ -1,5 +1,5 @@
 ﻿using System.Windows;
-using System.Net; // <--- НЕ ЗАБУДЬ ЦЕ
+using System.Net;
 
 namespace F1Predictor.UI
 {
@@ -7,8 +7,6 @@ namespace F1Predictor.UI
     {
         public App()
         {
-            // !!! ЦЕЙ РЯДОК МАГІЧНО ВИПРАВЛЯЄ ЗАВАНТАЖЕННЯ КАРТИНОК !!!
-            // Він змушує програму використовувати сучасний протокол безпеки
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
         }
     }

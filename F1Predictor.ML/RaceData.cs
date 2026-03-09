@@ -7,9 +7,8 @@ namespace F1Predictor.ML
         public float DriverId { get; set; }
         public float ConstructorId { get; set; }
         public float Grid { get; set; }
-        public float CircuitId { get; set; } // <--- НОВЕ ПОЛЕ!
+        public float CircuitId { get; set; }
 
-        // Це те, що ми вгадуємо (Label)
         public float PositionOrder { get; set; }
     }
 

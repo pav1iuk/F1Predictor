@@ -1,4 +1,4 @@
-﻿using F1Predictor.Core; // Додай цей using (Rider підкаже Alt+Enter)
+﻿using F1Predictor.Core;
 
 namespace F1Predictor.Data
 {
@@ -12,7 +12,6 @@ namespace F1Predictor.Data
             foreach (var line in lines.Skip(1))
             {
                 var parts = line.Split(',');
-                // Обережно: в CSV бувають коми всередині імен, але поки віримо, що структура проста
                 string fName = parts[4].Trim('"'); 
                 string lName = parts[5].Trim('"');
 
@@ -22,8 +21,7 @@ namespace F1Predictor.Data
                     FullName = $"{fName} {lName}" 
                 });
             }
-            
-            // СОРТУВАННЯ: Спочатку по прізвищу, потім по імені
+
             return list.OrderBy(d => d.FullName).ToList();
         }
 
@@ -42,8 +40,7 @@ namespace F1Predictor.Data
                     Name = parts[2].Trim('"')
                 });
             }
-
-            // СОРТУВАННЯ: По назві команди
+            
             return list.OrderBy(t => t.Name).ToList();
         }
         public static List<Circuit> LoadCircuits(string path)
@@ -52,9 +49,6 @@ namespace F1Predictor.Data
             var lines = File.ReadAllLines(path);
             foreach (var line in lines.Skip(1))
             {
-                // CSV парсинг може бути складним через коми в назвах, 
-                // але для базового варіанту circuits.csv Kaggle:
-                // circuitId(0), circuitRef(1), name(2), location(3)...
                 var parts = line.Split(',');
 
                 list.Add(new Circuit
@@ -69,13 +63,11 @@ namespace F1Predictor.Data
         public static List<PitStop> LoadPitStops(string path)
         {
             var list = new List<PitStop>();
-            // pit_stops.csv: raceId(0), driverId(1), stop(2), lap(3), time(4), duration(5), milliseconds(6)
             var lines = File.ReadAllLines(path).Skip(1);
     
             foreach (var line in lines)
             {
                 var parts = line.Split(',');
-                // Інколи бувають помилки в CSV, тому try-catch
                 try 
                 {
                     list.Add(new PitStop
@@ -92,7 +84,6 @@ namespace F1Predictor.Data
         public static List<Qualifying> LoadQualifying(string path)
         {
             var list = new List<Qualifying>();
-            // qualifying.csv: qualifyId(0), raceId(1), driverId(2), ..., position(5)
             var lines = File.ReadAllLines(path).Skip(1);
 
             foreach (var line in lines)

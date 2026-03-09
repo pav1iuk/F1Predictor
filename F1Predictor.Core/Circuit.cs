@@ -6,6 +6,6 @@
         public string Name { get; set; }
         public string Location { get; set; }
 
-        public string DisplayName => $"{Name} ({Location})"; // Для красивого списку
+        public string DisplayName => $"{Name} ({Location})";
     }
 }

@@ -4,6 +4,6 @@
     {
         public int RaceId { get; set; }
         public int DriverId { get; set; }
-        public int Position { get; set; } // Місце у кваліфікації
+        public int Position { get; set; }
     }
 }

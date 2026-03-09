@@ -14,7 +14,6 @@ namespace F1Predictor.ML
         {
             _mlContext = new MLContext();
 
-            // 1. Завантажуємо збережений "мозок" (.zip файл)
             if (!File.Exists(_modelPath))
             {
                 throw new FileNotFoundException($"Файл моделі не знайдено в {_modelPath}. Спочатку запустіть тренування!");
@@ -25,13 +24,11 @@ namespace F1Predictor.ML
                 _model = _mlContext.Model.Load(stream, out var modelInputSchema);
             }
 
-            // 2. Створюємо рушій прогнозування
             _predictionEngine = _mlContext.Model.CreatePredictionEngine<RaceData, RacePrediction>(_model);
         }
 
         public float Predict(float driverId, float teamId, float gridPosition, float circuitId)
         {
-            // Створюємо об'єкт з даними для прогнозу
             var inputData = new RaceData
             {
                 DriverId = driverId,
@@ -40,10 +37,9 @@ namespace F1Predictor.ML
                 CircuitId = circuitId
             };
 
-            // Робимо прогноз
             var prediction = _predictionEngine.Predict(inputData);
 
-            return prediction.Position; // Повертає прогнозоване місце (наприклад, 1.45)
+            return prediction.Position;
         }
     }
 }

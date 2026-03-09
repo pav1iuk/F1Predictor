@@ -4,7 +4,7 @@ namespace F1Predictor.UI
 {
     public static class ImageHelper
     {
-        // Офіційні заглушки з сервера Formula 1 (працюють стабільно)
+        // Офіційні заглушки з сервера Formula 1
         private const string DefaultDriver = "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/driver_fallback_image.png";
         private const string DefaultTeam = "https://media.formula1.com/content/dam/fom-website/teams/2025/team-logo-fallback.png"; // Або лого F1
         private const string DefaultCircuit = "https://media.formula1.com/image/upload/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/Monaco_Circuit.png";

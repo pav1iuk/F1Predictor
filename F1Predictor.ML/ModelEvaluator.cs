@@ -17,11 +17,9 @@ namespace F1Predictor.ML
         {
             try
             {
-                // 1. Завантажуємо реальні дані (тестовий набір)
                 var data = DataProcessor.LoadAndJoinData(resultsPath, racesPath);
                 IDataView dataView = _mlContext.Data.LoadFromEnumerable(data);
 
-                // 2. Завантажуємо навчену модель
                 if (!File.Exists(_modelPath)) return "Модель не знайдена!";
 
                 ITransformer model;
@@ -30,14 +28,10 @@ namespace F1Predictor.ML
                     model = _mlContext.Model.Load(stream, out var schema);
                 }
 
-                // 3. Робимо прогнози для ВСІХ даних відразу
                 var predictions = model.Transform(dataView);
 
-                // 4. Порівнюємо Прогноз (Score) з Реальність (PositionOrder)
-                // LabelColumnName - це те, що ми намагалися вгадати
                 var metrics = _mlContext.Regression.Evaluate(predictions, labelColumnName: "PositionOrder", scoreColumnName: "Score");
 
-                // 5. Формуємо красивий звіт
                 return $"📊 ЗВІТ ТОЧНОСТІ:\n" +
                        $"-----------------------------------\n" +
                        $"R-Squared (Коефіцієнт детермінації): {metrics.RSquared:0.##}\n" +

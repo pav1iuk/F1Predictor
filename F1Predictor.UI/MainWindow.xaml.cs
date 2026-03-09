@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using F1Predictor.Core;
-using F1Predictor.Data; // Наш новий проект
+using F1Predictor.Data;
 using F1Predictor.ML;
 using System.Windows.Media.Imaging;
 using LiveCharts;
@@ -13,19 +13,10 @@ namespace F1Predictor.UI;
 public partial class MainWindow : Window
 {
     private readonly ModelPredictor? _predictor;
-    private readonly HistoryService _historyService; // Додай using F1Predictor.Data;
+    private readonly HistoryService _historyService;
     public MainWindow()
     {
         InitializeComponent();
-        /* string baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        try {
-            var trainer = new ModelTrainer();
-            trainer.Train(
-                Path.Combine(baseDir, "Data", "results.csv"), 
-                Path.Combine(baseDir, "Data", "races.csv") // Додали другий файл
-            );
-            MessageBox.Show("Модель оновлено з урахуванням ТРАС!");
-        } catch (Exception ex) { MessageBox.Show("Error training: " + ex.Message); } */
         // 1. Завантаження моделі
         try 
         {
@@ -36,7 +27,7 @@ public partial class MainWindow : Window
             MessageBox.Show($"Помилка ML: {ex.Message}");
         }
         _historyService = new HistoryService();
-        // 2. Заповнення списків (Новий код)
+        // 2. Заповнення списків
         LoadFormData();
     }
 
@@ -109,21 +100,16 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
             rawResult += chaosFactor;
 
             // Штраф за погану надійність у дощ
-            // Якщо пілот ненадійний, у дощ він ще більше втрачає
-            // (Можна додати, якщо хочеш ускладнити, але Random вже достатньо)
         }
         // --- ЛОГІКА ОБРОБКИ РЕЗУЛЬТАТУ ---
         int finalPosition;
-
-        // ХИТРІСТЬ: Якщо прогноз дуже близький до перемоги (менше 1.6), примусово ставимо 1.
-        // Це виправляє "сором'язливість" моделі, яка часто дає 2 або 3 лідерам.
+        
         if (rawResult <= 1.6f)
         {
             finalPosition = 1;
         }
         else
         {
-            // Звичайне математичне округлення (3.6 -> 4, 3.2 -> 3)
             finalPosition = (int)Math.Round(rawResult);
         }
 
@@ -131,7 +117,7 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
         if (finalPosition < 1) finalPosition = 1;
         if (finalPosition > 20) finalPosition = 20;
 
-        // 5. Зберігаємо в історію (База Даних)
+        // 5. Зберігаємо в історію
         var driverObj = DriverCombo.SelectedItem as Driver;
         var teamObj = TeamCombo.SelectedItem as Team;
         var circuitObj = CircuitCombo.SelectedItem as Circuit;
@@ -142,7 +128,7 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
             TeamName = teamObj?.Name ?? "Unknown",
             CircuitName = circuitObj?.Name ?? "Unknown",
             GridPosition = (int)grid,
-            PredictedPosition = rawResult, // Зберігаємо точне число для точності історії
+            PredictedPosition = rawResult,
             Date = DateTime.Now
         };
 
@@ -158,10 +144,10 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
         ResultText.Text = $"{finalPosition} місце";
         var animation = new System.Windows.Media.Animation.DoubleAnimation
         {
-            From = 0.0,   // Починаємо з розміру 0 (невидимий)
-            To = 1.0,     // Збільшуємо до нормального розміру
-            Duration = TimeSpan.FromMilliseconds(500), // Триває пів секунди
-            EasingFunction = new System.Windows.Media.Animation.BackEase { Amplitude = 0.5 } // Ефект пружини в кінці
+            From = 0.0,   
+            To = 1.0,     
+            Duration = TimeSpan.FromMilliseconds(500), 
+            EasingFunction = new System.Windows.Media.Animation.BackEase { Amplitude = 0.5 } 
         };
 
 // Запускаємо анімацію для ширини і висоти
@@ -171,20 +157,19 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
         if (finalPosition == 1)
         {
             ResultText.Foreground = System.Windows.Media.Brushes.Gold;
-            ResultText.Text += " 🏆"; // Додаємо кубок
+            ResultText.Text += " 🏆";
         }
         else if (finalPosition <= 3)
         {
-            ResultText.Foreground = System.Windows.Media.Brushes.LightGreen; // Подіум
+            ResultText.Foreground = System.Windows.Media.Brushes.LightGreen; 
         }
         else if (finalPosition >= 15)
         {
-            ResultText.Foreground = System.Windows.Media.Brushes.OrangeRed; // Хвіст пелотону
+            ResultText.Foreground = System.Windows.Media.Brushes.OrangeRed;
         }
         else
         {
-            ResultText.Foreground = System.Windows.Media.Brushes.White; // Середина (або Red, якщо у тебе світла тема, але краще White для темної)
-            // Якщо у тебе світлий фон карток, використай Brushes.DarkGray або Brushes.Black
+            ResultText.Foreground = System.Windows.Media.Brushes.White;
         }
     }
     catch (Exception ex)
@@ -194,37 +179,29 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
 }
     private void HistoryTab_Selected(object sender, RoutedEventArgs e)
     {
-        // Завантажуємо дані з БД і показуємо в таблиці
         HistoryGrid.ItemsSource = _historyService.GetAll();
     }
     private void TeamCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // Якщо нічого не вибрано - виходимо
         if (TeamCombo.SelectedValue == null) return;
 
-        // Отримуємо назву обраної команди
-        // (TeamCombo.SelectedItem повертає об'єкт Team, який ми створили в Core)
         var selectedTeam = TeamCombo.SelectedItem as Team;
         if (selectedTeam == null) return;
 
         string url = GetTeamLogoUrl(selectedTeam.Name);
 
-        // Завантажуємо картинку за посиланням
         try
         {
             TeamLogo.Source = new BitmapImage(new Uri(url));
         }
         catch
         {
-            // Якщо посилання бите - ігноруємо
         }
     }
     private void DriverCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
 {
-    // 1. Спочатку оновлюємо графік
     UpdateChart();
 
-    // 2. Перевіряємо, чи дійсно обрано водія
     if (DriverCombo.SelectedItem is Driver selectedDriver)
     {
         // --- ОНОВЛЕННЯ ФОТО ---
@@ -238,9 +215,8 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
         }
 
         // --- ЗЧИТУВАННЯ НАЛАШТУВАНЬ (UI Thread) ---
-        // Важливо зчитати це ДО запуску Task.Run, щоб не було конфлікту потоків
         bool isTrackSpecific = TrackFilterToggle.IsChecked == true;
-        bool isRain = WeatherToggle.IsChecked == true; // <--- НОВЕ: Перевірка погоди
+        bool isRain = WeatherToggle.IsChecked == true;
 
         float currentCircuitId = -1;
         if (CircuitCombo.SelectedValue != null)
@@ -255,7 +231,6 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
             string avgStop = GetAvgPitStopTime(selectedDriver.DriverId);
 
             // Б. Отримуємо базову надійність
-            // (Враховуємо фільтр траси, якщо він увімкнений)
             double reliability = GetReliabilityStats(selectedDriver.DriverId, isTrackSpecific ? currentCircuitId : -1);
 
             // --- В. ЗАСТОСОВУЄМО ЕФЕКТ ДОЩУ ---
@@ -275,16 +250,16 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
                 // 2. Виводимо надійність
                 if (ReliabilityText != null && ReliabilityBar != null)
                 {
-                    ReliabilityText.Text = $"{reliability:F0}%"; // Наприклад "68%"
-                    ReliabilityBar.Value = reliability;          // Заповнюємо коло
+                    ReliabilityText.Text = $"{reliability:F0}%";
+                    ReliabilityBar.Value = reliability;         
 
                     // 3. Змінюємо колір залежно від відсотка
                     if (reliability >= 90)
-                        ReliabilityBar.Foreground = System.Windows.Media.Brushes.LightGreen; // Відмінно
+                        ReliabilityBar.Foreground = System.Windows.Media.Brushes.LightGreen; 
                     else if (reliability >= 75)
-                        ReliabilityBar.Foreground = System.Windows.Media.Brushes.Orange;     // Нормально
+                        ReliabilityBar.Foreground = System.Windows.Media.Brushes.Orange;     
                     else
-                        ReliabilityBar.Foreground = System.Windows.Media.Brushes.Red;        // Погано (або дощ)
+                        ReliabilityBar.Foreground = System.Windows.Media.Brushes.Red;        
                 }
             });
         });
@@ -320,19 +295,19 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
             Title = "Кваліфікація", 
             Values = new ChartValues<double>(performance.Select(x => x.QualiPos)),
             Stroke = System.Windows.Media.Brushes.DodgerBlue,
-            Fill = System.Windows.Media.Brushes.Transparent, // Тут пусто
+            Fill = System.Windows.Media.Brushes.Transparent,
             PointGeometry = DefaultGeometries.Square,
             StrokeDashArray = new System.Windows.Media.DoubleCollection { 2 }
         },
 
-        // Лінія 2: Гонка (РОБИМО КРАСИВОЮ)
+        // Лінія 2: Гонка
         new LineSeries
         {
             Title = "Фініш",
             Values = new ChartValues<double>(performance.Select(x => x.RacePos)),
             PointGeometry = DefaultGeometries.Circle,
-            PointGeometrySize = 15, // Збільшили крапки
-            StrokeThickness = 4,    // Жирніша лінія
+            PointGeometrySize = 15, 
+            StrokeThickness = 4,    
             Stroke = System.Windows.Media.Brushes.Red,
         
             // ГРАДІЄНТНА ЗАЛИВКА ПІД ЛІНІЄЮ
@@ -342,9 +317,7 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
                 EndPoint = new System.Windows.Point(0, 1),
                 GradientStops = new System.Windows.Media.GradientStopCollection
                 {
-                    // Зверху напівпрозорий червоний
                     new System.Windows.Media.GradientStop(System.Windows.Media.Color.FromArgb(80, 255, 82, 82), 0), 
-                    // Знизу повністю прозорий
                     new System.Windows.Media.GradientStop(System.Windows.Media.Colors.Transparent, 1)
                 }
             }
@@ -353,9 +326,8 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
 }
     private void CircuitCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        UpdateChart(); // Твій старий метод
-
-        // НОВЕ: Оновлення карти
+        UpdateChart(); 
+        
         if (CircuitCombo.SelectedItem is Circuit selectedCircuit)
         {
             try { CircuitImage.Source = new BitmapImage(new Uri(GetCircuitMapUrl(selectedCircuit.Name))); }
@@ -370,12 +342,11 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
             var button = sender as Button;
             
             // 2. Отримуємо дані рядка, в якому ця кнопка знаходиться
-            // (DataContext кнопки - це і є наш об'єкт PredictionHistory)
             var record = button.DataContext as PredictionHistory;
 
             if (record == null) return;
 
-            // 3. Питаємо підтвердження (щоб не видалити випадково)
+            // 3. Питаємо підтвердження
             var result = MessageBox.Show($"Видалити запис про {record.DriverName}?", 
                 "Підтвердження", 
                 MessageBoxButton.YesNo, 
@@ -397,7 +368,7 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
     }
     private void ButtonEvaluate_Click(object sender, RoutedEventArgs e)
     {
-        // Показуємо, що процес пішов (бо це може зайняти пару секунд)
+        // Показуємо, що процес пішов
         ResultText.Text = "Обчислення метрик...";
         
         // Запускаємо в окремому потоці, щоб вікно не зависло (Task.Run)
@@ -438,11 +409,7 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
                 .ToList();
 
             if (validStops.Count == 0) return "Немає даних";
-
-            // Рахуємо середнє і переводимо в секунди (це час проїзду по піт-лейну)
-            // В середньому це 20-25 сек. Якщо хочеш чистий час механіків, треба іншу колонку (duration),
-            // але вона в CSV часто записана текстом ("22.123"), що складно парсити. 
-            // Тому мілісекунди - найнадійніший варіант.
+            
             double avgSeconds = validStops.Average() / 1000.0;
         
             return $"{avgSeconds:F2} с";
@@ -452,10 +419,9 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
             return "---";
         }
     }
-    // Додай цей клас-модель прямо всередині MainWindow.xaml.cs або окремо
     public class RacePerformance
     {
-        public int RaceNumber { get; set; } // Просто 1, 2, 3... для осі X
+        public int RaceNumber { get; set; }
         public string RaceName { get; set; }
         public double QualiPos { get; set; }
         public double RacePos { get; set; }
@@ -493,7 +459,6 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
             AvgPosition = driverResults.Average(r => r.PositionOrder)
         };
     }
-// Додай цей метод у клас MainWindow
     private List<RacePerformance> GetDriverPerformance(float driverId)
     {
         string baseDir = AppDomain.CurrentDomain.BaseDirectory;
@@ -505,8 +470,7 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
             .Where(q => q.DriverId == driverId)
             .ToList();
 
-        // 2. Вантажимо Результати гонок (використовуємо твій існуючий лоадер або пишемо простий тут)
-        // Швидкий варіант читання results.csv тільки для цього графіку:
+        // 2. Вантажимо Результати гонок
         var allRaces = File.ReadAllLines(resultsPath).Skip(1)
             .Select(line => line.Split(','))
             .Where(p => float.Parse(p[2]) == driverId)
@@ -514,15 +478,15 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
                 RaceId = int.Parse(p[1]), 
                 Pos = int.Parse(p[8]) 
             })
-            .OrderByDescending(r => r.RaceId) // Спочатку нові
-            .Take(15) // Беремо останні 15 гонок
+            .OrderByDescending(r => r.RaceId)
+            .Take(15)
             .ToList();
 
         var data = new List<RacePerformance>();
         int counter = 1;
 
         // 3. З'єднуємо (Join)
-        foreach (var race in allRaces.OrderBy(r => r.RaceId)) // Сортуємо від старих до нових для графіка
+        foreach (var race in allRaces.OrderBy(r => r.RaceId))
         {
             var quali = allQualis.FirstOrDefault(q => q.RaceId == race.RaceId);
         
@@ -550,7 +514,7 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
         var driverA = DriverACombo.SelectedItem as Driver;
         var driverB = DriverBCombo.SelectedItem as Driver;
 
-        // 3. Рахуємо статистику (це може зайняти секунду, тому краще Task.Run, але можна і так)
+        // 3. Рахуємо статистику
         var statsA = CalculateStats(driverA.DriverId, driverA.FullName);
         var statsB = CalculateStats(driverB.DriverId, driverB.FullName);
 
@@ -563,7 +527,7 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
                 Title = statsA.DriverName,
                 Values = new ChartValues<int> { statsA.TotalRaces, statsA.Wins, statsA.Podiums, statsA.Poles },
                 DataLabels = true,
-                Fill = System.Windows.Media.Brushes.DodgerBlue // Синій колір
+                Fill = System.Windows.Media.Brushes.DodgerBlue
             },
             
             // Стовпчики Пілота B
@@ -572,18 +536,17 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
                 Title = statsB.DriverName,
                 Values = new ChartValues<int> { statsB.TotalRaces, statsB.Wins, statsB.Podiums, statsB.Poles },
                 DataLabels = true,
-                Fill = System.Windows.Media.Brushes.Red // Червоний колір
+                Fill = System.Windows.Media.Brushes.Red
             }
         };
     }
-    // Додали параметр circuitId (якщо -1, то беремо всі траси)
     private double GetReliabilityStats(float driverId, float circuitId = -1)
     {
         try
         {
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string resultsPath = Path.Combine(baseDir, "Data", "results.csv");
-            string racesPath = Path.Combine(baseDir, "Data", "races.csv"); // Треба для зв'язку RaceId -> CircuitId
+            string racesPath = Path.Combine(baseDir, "Data", "races.csv");
 
             if (!File.Exists(resultsPath)) return 0;
 
@@ -623,7 +586,6 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
     }
     private void Filter_Changed(object sender, RoutedEventArgs e)
     {
-        // Просто оновлюємо всі графіки при перемиканні
         DriverCombo_SelectionChanged(null, null);
     }
     private List<RacePerformance> GetDetailedPerformance(float driverId, float circuitId, bool isTrackSpecific)
@@ -633,13 +595,12 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
     string qualiPath = Path.Combine(baseDir, "Data", "qualifying.csv");
     string racesPath = Path.Combine(baseDir, "Data", "races.csv");
 
-    // 1. Вантажимо Кваліфікації (всі для цього пілота)
-    // (Припускаємо, що метод CsvDataLoader.LoadQualifying існує, ми його робили раніше)
+    // 1. Вантажимо Кваліфікації
     var allQualis = CsvDataLoader.LoadQualifying(qualiPath)
         .Where(q => q.DriverId == driverId)
         .ToList();
 
-    // 2. Вантажимо структуру Гонок (щоб знати трасу і дату)
+    // 2. Вантажимо структуру Гонок
     var allRacesInfo = File.ReadAllLines(racesPath).Skip(1)
         .Select(line => line.Split(','))
         .Select(p => new 
@@ -670,7 +631,7 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
         // Беремо тільки гонки на цій трасі
         targetRaceIds = allRacesInfo
             .Where(r => r.CircuitId == (int)circuitId)
-            .OrderBy(r => r.Year) // Сортуємо хронологічно
+            .OrderBy(r => r.Year) 
             .Select(r => r.RaceId)
             .ToList();
     }
@@ -678,10 +639,10 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
     {
         // Беремо останні 15 гонок (Загальна форма)
         targetRaceIds = driverResults
-            .OrderByDescending(r => r.RaceId) // Спочатку нові
+            .OrderByDescending(r => r.RaceId)
             .Take(15)
             .Select(r => r.RaceId)
-            .OrderBy(id => id) // Але на графіку малюємо зліва направо (старі -> нові)
+            .OrderBy(id => id)
             .ToList();
     }
 
@@ -692,7 +653,7 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
     foreach (var rId in targetRaceIds)
     {
         var raceRes = driverResults.FirstOrDefault(r => r.RaceId == rId);
-        if (raceRes == null) continue; // Таке буває, якщо пілот пропустив гонку
+        if (raceRes == null) continue;
 
         var raceInfo = allRacesInfo.FirstOrDefault(r => r.RaceId == rId);
         var qualiRes = allQualis.FirstOrDefault(q => q.RaceId == rId);
@@ -700,9 +661,8 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
         data.Add(new RacePerformance
         {
             RaceNumber = counter++,
-            RaceName = isTrackSpecific ? raceInfo?.Year.ToString() : raceInfo?.Name, // Якщо траса одна - показуємо рік, якщо різні - назву
+            RaceName = isTrackSpecific ? raceInfo?.Year.ToString() : raceInfo?.Name,
             RacePos = raceRes.Pos,
-            // Якщо немає кваліфікації, ставимо те саме місце, що і в гонці (щоб графік не падав в нуль)
             QualiPos = qualiRes != null ? qualiRes.Position : raceRes.Pos 
         });
     }
@@ -716,7 +676,6 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
         // Змінюємо колір картки
         if (SettingsCard != null)
         {
-            // Якщо дощ - темно-синій відтінок (#1A237E - Indigo), якщо сухо - стандартний (або #303030)
             var brush = isRain 
                 ? new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#1A237E")) // Rain Color
                 : new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#303030")); // Default Color
@@ -737,7 +696,6 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
     }
     private string GetTeamLogoUrl(string teamName)
     {
-        // Тобі треба додати виклик цього методу в DriverCombo_SelectionChanged, якщо його там ще немає
         return ImageHelper.GetTeamUrl(teamName);
     }
 }

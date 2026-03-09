@@ -3,9 +3,8 @@
     public class Driver
     {
         public float DriverId { get; set; }
-        public string FullName { get; set; } // Тут буде "Lewis Hamilton"
-
-        // Перевизначаємо ToString, щоб у списку відображалось ім'я, а не назва класу
+        public string FullName { get; set; }
+        
         public override string ToString() => FullName; 
     }
 }

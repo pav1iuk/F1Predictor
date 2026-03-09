@@ -7,14 +7,13 @@ namespace F1Predictor.ML
     {
         private static string _modelPath = Path.Combine(Environment.CurrentDirectory, "F1Model.zip");
 
-        public void Train(string resultsPath, string racesPath) // Тепер приймаємо два шляхи
+        public void Train(string resultsPath, string racesPath)
         {
             var mlContext = new MLContext(seed: 0);
 
             Console.WriteLine("1. Об'єднання даних (Results + Races)...");
             var trainingDataList = DataProcessor.LoadAndJoinData(resultsPath, racesPath);
 
-            // Завантажуємо дані в пам'ять ML.NET прямо зі списку (LoadFromEnumerable)
             IDataView dataView = mlContext.Data.LoadFromEnumerable(trainingDataList);
 
             Console.WriteLine("2. Побудова Pipeline...");
@@ -22,10 +21,8 @@ namespace F1Predictor.ML
                 .Append(mlContext.Transforms.Categorical.OneHotEncoding("DriverEncoded", "DriverId"))
                 .Append(mlContext.Transforms.Categorical.OneHotEncoding("TeamEncoded", "ConstructorId"))
                 
-                // Додаємо кодування для ТРАСИ
                 .Append(mlContext.Transforms.Categorical.OneHotEncoding("CircuitEncoded", "CircuitId")) 
 
-                // Додаємо CircuitEncoded у фінальний вектор
                 .Append(mlContext.Transforms.Concatenate("Features", "DriverEncoded", "TeamEncoded", "CircuitEncoded", "Grid"))
                 
                 .Append(mlContext.Regression.Trainers.FastTree());

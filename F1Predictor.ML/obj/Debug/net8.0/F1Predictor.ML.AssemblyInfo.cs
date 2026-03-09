@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("F1Predictor.ML")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f78fb550f7ef27197e0c5e2615937935f0db0dff")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f4ffde60ea143e8d63398c6e9574a9871abb1fbc")]
 [assembly: System.Reflection.AssemblyProductAttribute("F1Predictor.ML")]
 [assembly: System.Reflection.AssemblyTitleAttribute("F1Predictor.ML")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

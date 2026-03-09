@@ -9,7 +9,6 @@ namespace F1Predictor.Data
         public HistoryService()
         {
             _context = new AppDbContext();
-            // Ця команда створить файл history.db, якщо його немає
             _context.Database.EnsureCreated();
         }
 
@@ -21,17 +20,14 @@ namespace F1Predictor.Data
 
         public List<PredictionHistory> GetAll()
         {
-            // Завантажуємо останні спочатку
             return _context.Predictions
                 .OrderByDescending(x => x.Date)
                 .ToList();
         }
         public void DeleteRecord(int id)
         {
-            // Знаходимо запис за ID
             var record = _context.Predictions.FirstOrDefault(x => x.Id == id);
             
-            // Якщо знайшли - видаляємо
             if (record != null)
             {
                 _context.Predictions.Remove(record);
