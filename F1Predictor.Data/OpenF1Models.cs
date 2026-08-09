@@ -69,3 +69,48 @@ public class OpenF1CarData
     [JsonPropertyName("date")]
     public string Date { get; set; } = string.Empty;
 }
+public class OpenF1Stint
+{
+    [JsonPropertyName("driver_number")]
+    public int DriverNumber { get; set; }
+
+    [JsonPropertyName("stint_number")]
+    public int StintNumber { get; set; }
+
+    [JsonPropertyName("compound")]
+    public string Compound { get; set; } = string.Empty;
+
+    [JsonPropertyName("tyre_age_at_start")]
+    public int TyreAgeAtStart { get; set; }
+
+    [JsonPropertyName("laps_stint")]
+    public int LapsStint { get; set; }
+}
+public class OpenF1Lap
+{
+    [JsonPropertyName("driver_number")]
+    public int DriverNumber { get; set; }
+
+    [JsonPropertyName("lap_number")]
+    public int LapNumber { get; set; }
+
+    [JsonPropertyName("lap_duration")]
+    public double? LapDuration { get; set; }
+
+    [JsonPropertyName("is_pit_out_lap")]
+    public bool IsPitOutLap { get; set; }
+}
+public class OpenF1Weather
+{
+    [JsonPropertyName("air_temperature")]
+    public double AirTemperature { get; set; }
+
+    [JsonPropertyName("track_temperature")]
+    public double TrackTemperature { get; set; }
+
+    [JsonPropertyName("humidity")]
+    public double Humidity { get; set; }
+
+    [JsonPropertyName("rainfall")]
+    public int Rainfall { get; set; } // 0 = Сухо, 1 = Дощ
+}

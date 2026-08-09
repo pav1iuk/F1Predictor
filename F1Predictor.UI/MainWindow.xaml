@@ -339,18 +339,62 @@
                 </Grid>
             </TabItem>
             <!-- 5-ТА ВКЛАДКА: Телеметрія та темп -->
+<!-- 5-ТА ВКЛАДКА: Телеметрія та темп -->
 <TabItem Width="80" Height="80">
     <TabItem.Header>
         <StackPanel>
-            <!-- Іконка спидометра для бокового меню -->
             <materialDesign:PackIcon Kind="Speedometer" HorizontalAlignment="Center" Width="24" Height="24"/>
             <TextBlock Text="Темп" HorizontalAlignment="Center" FontSize="10" Margin="0,2,0,0"/>
         </StackPanel>
     </TabItem.Header>
 
     <Grid Margin="20">
-        <!-- Картка телеметрії швидкості -->
-        <materialDesign:Card Padding="20" UniformCornerRadius="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ВЕРХНЯ ПАНЕЛЬ: Картка Індексу Стабільності (Consistency Score) -->
+        <materialDesign:Card Grid.Row="0" Padding="15" Margin="0,0,0,15" UniformCornerRadius="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 1. Найкраще коло -->
+                <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                    <TextBlock Text="⏱ НАЙКРАЩЕ КОЛО" Foreground="Gray" FontSize="11" FontWeight="Bold"/>
+                    <TextBlock x:Name="BestLapLabel" Text="--:--.---" FontSize="20" FontWeight="Bold" Foreground="#4CAF50" Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <!-- 2. Середній темп -->
+                <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                    <TextBlock Text="📈 СЕРЕДНІЙ ТЕМП" Foreground="Gray" FontSize="11" FontWeight="Bold"/>
+                    <TextBlock x:Name="AvgLapLabel" Text="--:--.---" FontSize="20" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <!-- 3. Варіативність (StdDev) -->
+                <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                    <TextBlock Text="🎯 ВІДХИЛЕННЯ (StdDev)" Foreground="Gray" FontSize="11" FontWeight="Bold"/>
+                    <TextBlock x:Name="StdDevLabel" Text="±0.00 сек" FontSize="20" FontWeight="Bold" Foreground="#FFC107" Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <!-- 4. Індекс стабільності -->
+                <StackPanel Grid.Column="3" HorizontalAlignment="Center">
+                    <TextBlock Text="⭐️ СТАБІЛЬНІСТЬ ПІЛОТА" Foreground="Gray" FontSize="11" FontWeight="Bold"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                        <TextBlock x:Name="ConsistencyScoreLabel" Text="--%" FontSize="20" FontWeight="Bold" Foreground="#FF5252"/>
+                        <ProgressBar x:Name="ConsistencyProgress" Value="0" Maximum="100" Width="60" Height="10" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </materialDesign:Card>
+
+        <!-- НИЖНЯ ПАНЕЛЬ: Картка телеметрії з графіком -->
+        <materialDesign:Card Grid.Row="1" Padding="20" UniformCornerRadius="10">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -358,7 +402,7 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- 1. Шапка з кнопкою -->
+                <!-- Шапка з кнопкою -->
                 <DockPanel Grid.Row="0" Margin="0,0,0,15">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <materialDesign:PackIcon Kind="Gauge" Width="24" Height="24" Foreground="#FF5252" VerticalAlignment="Center" Margin="0,0,10,0"/>
@@ -372,12 +416,12 @@
                             Background="#FF5252" BorderBrush="#FF5252" Height="36">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="CloudDownload" Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Завантажити телеметрію" VerticalAlignment="Center"/>
+                            <TextBlock Text="Завантажити аналітику та телеметрію" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </DockPanel>
 
-                <!-- 2. Інформаційна панель (Контекст даних) -->
+                <!-- Контекст даних -->
                 <materialDesign:Card Grid.Row="1" Background="#2D2D2D" Padding="12" Margin="0,0,0,15" UniformCornerRadius="5">
                     <DockPanel>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -387,12 +431,12 @@
                             <TextBlock Text="Макс. швидкість: " Foreground="Gray" VerticalAlignment="Center"/>
                             <TextBlock x:Name="TelemetryMaxSpeedLabel" Text="--- км/год" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
                         </StackPanel>
-                        <TextBlock Text="* Показано графік зміни швидкості (км/год) вздовж сесії" Foreground="Gray" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock Text="* Показано розгони/гальмування на колі та стабільність темпу" Foreground="Gray" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     </DockPanel>
                 </materialDesign:Card>
 
-                <!-- 3. Графік LiveCharts -->
-                <lvc:CartesianChart Grid.Row="2" x:Name="TelemetryChart" Height="350" LegendLocation="Top">
+                <!-- Графік -->
+                <lvc:CartesianChart Grid.Row="2" x:Name="TelemetryChart" Height="280" LegendLocation="Top">
                     <lvc:CartesianChart.AxisX>
                         <lvc:Axis Title="Точки вимірювання (Telemetry Samples)"/>
                     </lvc:CartesianChart.AxisX>
@@ -404,83 +448,91 @@
         </materialDesign:Card>
     </Grid>
 </TabItem>
-            <!-- НОВА ВКЛАДКА: Стратегія шин -->
-            <TabItem Width="80" Height="80">
-                <TabItem.Header>
-                    <StackPanel>
-                        <materialDesign:PackIcon Kind="Tire" HorizontalAlignment="Center" Width="24" Height="24"/>
-                        <TextBlock Text="Стратегія" HorizontalAlignment="Center" FontSize="10"/>
-                    </StackPanel>
-                </TabItem.Header>
+<!-- НОВА ВКЛАДКА: Стратегія шин -->
+<TabItem Width="80" Height="80">
+    <TabItem.Header>
+        <StackPanel>
+            <materialDesign:PackIcon Kind="Tire" HorizontalAlignment="Center" Width="24" Height="24"/>
+            <TextBlock Text="Стратегія" HorizontalAlignment="Center" FontSize="10"/>
+        </StackPanel>
+    </TabItem.Header>
 
-                <Grid Margin="20">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="350"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+    <Grid Margin="20">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="350"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-                    <!-- Ліва панель: Налаштування шин та температури -->
-                    <materialDesign:Card Padding="20" Margin="0,0,20,0" UniformCornerRadius="10" materialDesign:ShadowAssist.ShadowDepth="Depth2">
-                        <StackPanel>
-                            <TextBlock Text="Стратегія шин 🛞" Style="{StaticResource MaterialDesignHeadline5TextBlock}" Margin="0,0,0,20"/>
+        <!-- Ліва панель: Налаштування шин та температури -->
+        <materialDesign:Card Padding="20" Margin="0,0,20,0" UniformCornerRadius="10" materialDesign:ShadowAssist.ShadowDepth="Depth2">
+            <StackPanel>
+                <TextBlock Text="Стратегія шин 🛞" Style="{StaticResource MaterialDesignHeadline5TextBlock}" Margin="0,0,0,20"/>
 
-                            <TextBlock Text="Тип шин на старті:" Foreground="Gray" Margin="0,0,0,5"/>
-                            <!-- ✅ ПРАВИЛЬНИЙ КОД БЕЗ КОНВЕРТЕРА -->
-                            <ComboBox x:Name="TyreStrategyCombo" SelectedIndex="0" 
-                                      Style="{StaticResource MaterialDesignFloatingHintComboBox}" Margin="0,0,0,15">
-                                <ComboBoxItem Content="🔴 Soft (Швидкий старт, +1 піт-стоп)"/>
-                                <ComboBoxItem Content="🟡 Medium (Оптимальний баланс)"/>
-                                <ComboBoxItem Content="⚪ Hard (Повільний старт, 1 піт-стоп)"/>
-                            </ComboBox>
+                <TextBlock Text="Тип шин на старті:" Foreground="Gray" Margin="0,0,0,5"/>
+                <ComboBox x:Name="TyreStrategyCombo" SelectedIndex="0" 
+                          Style="{StaticResource MaterialDesignFloatingHintComboBox}" Margin="0,0,0,15">
+                    <ComboBoxItem Content="🔴 Soft (Швидкий старт, +1 піт-стоп)"/>
+                    <ComboBoxItem Content="🟡 Medium (Оптимальний баланс)"/>
+                    <ComboBoxItem Content="⚪ Hard (Повільний старт, 1 піт-стоп)"/>
+                </ComboBox>
 
-                            <!-- Температура траси -->
-                            <!-- Вкладка 4: Стратегія -->
-                            <TextBlock Text="Температура асфальту (°C):" Foreground="Gray" Margin="0,0,0,5"/>
-                            <DockPanel Margin="0,0,0,20">
-                                <TextBlock x:Name="TempStrategyText" 
-                                           Text="{Binding ElementName=TempStrategySlider, Path=Value, StringFormat={}{0:F0}°C}" 
-                                           DockPanel.Dock="Right" FontWeight="Bold" Margin="10,0,0,0" FontSize="14"/>
-                                <Slider x:Name="TempStrategySlider" 
-                                        Value="25" 
-                                        Minimum="15" 
-                                        Maximum="55" 
-                                        TickFrequency="1" 
-                                        IsSnapToTickEnabled="True"/>
-                            </DockPanel>
+                <!-- Температура траси -->
+                <TextBlock Text="Температура асфальту (°C):" Foreground="Gray" Margin="0,0,0,5"/>
+                <DockPanel Margin="0,0,0,20">
+                    <TextBlock x:Name="TempStrategyText" 
+                               Text="{Binding ElementName=TempStrategySlider, Path=Value, StringFormat={}{0:F0}°C}" 
+                               DockPanel.Dock="Right" FontWeight="Bold" Margin="10,0,0,0" FontSize="14"/>
+                    <Slider x:Name="TempStrategySlider" 
+                            Value="25" 
+                            Minimum="15" 
+                            Maximum="55" 
+                            TickFrequency="1" 
+                            IsSnapToTickEnabled="True"/>
+                </DockPanel>
 
-                            <Button Content="Розрахувати стратегію" 
-                                    Command="{Binding CalculateTyreStrategyCommand}" 
-                                    Height="45" FontSize="16" FontWeight="Bold"
-                                    materialDesign:ButtonAssist.CornerRadius="20"/>
-                        </StackPanel>
-                    </materialDesign:Card>
+                <!-- 1. Математичний розрахунок (Локальний) -->
+                <Button Content="Розрахувати стратегію" 
+                        Command="{Binding CalculateTyreStrategyCommand}" 
+                        Height="45" FontSize="16" FontWeight="Bold"
+                        materialDesign:ButtonAssist.CornerRadius="20"/>
 
-                    <!-- Права панель: Результат та Графік LiveCharts -->
-                    <materialDesign:Card Grid.Column="1" Padding="20" UniformCornerRadius="10">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
+                <!-- 2. НОВА КНОПКА: Реальні дані з OpenF1 API -->
+                <Button x:Name="BtnLoadApiStrategy" 
+                        Content="Отримати реальні дані шин (OpenF1)" 
+                        Click="ButtonLoadApiStrategy_Click" 
+                        Height="40" FontSize="13"
+                        Margin="0,12,0,0"
+                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                        materialDesign:ButtonAssist.CornerRadius="20"/>
+            </StackPanel>
+        </materialDesign:Card>
 
-                            <StackPanel Grid.Row="0" Margin="0,0,0,20">
-                                <TextBlock Text="Аналіз деградації та вікно піт-стопу" Style="{StaticResource MaterialDesignHeadline6TextBlock}"/>
-                                <TextBlock Text="{Binding PitWindowRecommendation}" 
-                                           FontSize="18" FontWeight="Bold" Foreground="#FF5252" Margin="0,10,0,0"/>
-                            </StackPanel>
+        <!-- Права панель: Результат та Графік LiveCharts -->
+        <materialDesign:Card Grid.Column="1" Padding="20" UniformCornerRadius="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                            <lvc:CartesianChart Grid.Row="1" Series="{Binding TyreSeriesCollection}">
-                                <lvc:CartesianChart.AxisX>
-                                    <lvc:Axis Title="Коло гонки" Labels="{Binding LapLabels}"/>
-                                </lvc:CartesianChart.AxisX>
-                                <lvc:CartesianChart.AxisY>
-                                    <lvc:Axis Title="Втрата темпу (секунди)"/>
-                                </lvc:CartesianChart.AxisY>
-                            </lvc:CartesianChart>
-                        </Grid>
-                    </materialDesign:Card>
-                </Grid>
-            </TabItem>
+                <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                    <TextBlock Text="Аналіз деградації та вікно піт-стопу" Style="{StaticResource MaterialDesignHeadline6TextBlock}"/>
+                    <TextBlock Text="{Binding PitWindowRecommendation}" 
+                               FontSize="18" FontWeight="Bold" Foreground="#FF5252" Margin="0,10,0,0"/>
+                </StackPanel>
+
+                <lvc:CartesianChart Grid.Row="1" Series="{Binding TyreSeriesCollection}">
+                    <lvc:CartesianChart.AxisX>
+                        <lvc:Axis Title="Коло гонки" Labels="{Binding LapLabels}"/>
+                    </lvc:CartesianChart.AxisX>
+                    <lvc:CartesianChart.AxisY>
+                        <lvc:Axis Title="Втрата темпу (секунди)"/>
+                    </lvc:CartesianChart.AxisY>
+                </lvc:CartesianChart>
+            </Grid>
+        </materialDesign:Card>
+    </Grid>
+</TabItem>
         </TabControl>
     </Grid>
 </Window>

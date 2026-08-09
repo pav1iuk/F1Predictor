@@ -18,7 +18,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-
+        Loaded += async (s, e) => await UpdateLiveWeatherAsync();
         // Підключаємо ViewModel для вкладки Стратегії та інших Binding-ів
         this.DataContext = new MainViewModel();
 
@@ -813,9 +813,9 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
 }
 private async void ButtonLoadTelemetry_Click(object sender, RoutedEventArgs e)
 {
-    if (DriverCombo.SelectedItem is not Driver selectedDriver || CircuitCombo.SelectedItem is not Circuit selectedCircuit)
+    if (DriverCombo.SelectedItem is not Driver selectedDriver)
     {
-        MessageBox.Show("Оберіть пілота та трасу!", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+        MessageBox.Show("Оберіть пілота!", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
         return;
     }
 
@@ -823,7 +823,6 @@ private async void ButtonLoadTelemetry_Click(object sender, RoutedEventArgs e)
 
     try
     {
-        // Отримуємо номер пілота з рядка
         int driverNumber = 1;
         var match = System.Text.RegularExpressions.Regex.Match(selectedDriver.FullName, @"#(\d+)");
         if (match.Success)
@@ -831,32 +830,63 @@ private async void ButtonLoadTelemetry_Click(object sender, RoutedEventArgs e)
             driverNumber = int.Parse(match.Groups[1].Value);
         }
 
-        // Передаємо назву країни/траси для точного пошуку сесії в OpenF1
-        string searchParam = !string.IsNullOrEmpty(selectedCircuit.Location) ? selectedCircuit.Location : selectedCircuit.Name;
-        
-        var telemetry = await _apiService.GetCarTelemetryAsync(driverNumber, searchParam);
+        string circuitSearch = CircuitCombo.SelectedItem is Circuit c ? c.Location ?? c.Name ?? "" : "";
 
-        if (telemetry.Count == 0)
+        // Паралельний запит телеметрії та кіл
+        var telemetryTask = _apiService.GetCarTelemetryAsync(driverNumber, circuitSearch);
+        var lapsTask = _apiService.GetDriverLapsAsync(driverNumber, circuitSearch);
+
+        await Task.WhenAll(telemetryTask, lapsTask);
+
+        var telemetry = await telemetryTask;
+        var laps = await lapsTask;
+
+        // --- ТЕЛЕМЕТРІЯ ---
+        if (telemetry.Count > 0)
         {
-            MessageBox.Show($"На жаль, у сервері OpenF1 відсутні дані телеметрії для {selectedDriver.FullName} на цій трасі.", 
-                            "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
+            TelemetryDriverLabel.Text = selectedDriver.FullName;
+            TelemetryMaxSpeedLabel.Text = $"{telemetry.Max(t => t.Speed)} км/год";
+
+            TelemetryChart.Series = new LiveCharts.SeriesCollection
+            {
+                new LiveCharts.Wpf.LineSeries
+                {
+                    Title = $"{selectedDriver.FullName}",
+                    Values = new LiveCharts.ChartValues<int>(telemetry.Select(t => t.Speed)),
+                    Stroke = System.Windows.Media.Brushes.OrangeRed,
+                    PointGeometry = null,
+                    StrokeThickness = 2
+                }
+            };
         }
 
-        TelemetryDriverLabel.Text = selectedDriver.FullName;
-        TelemetryMaxSpeedLabel.Text = $"{telemetry.Max(t => t.Speed)} км/год";
-
-        TelemetryChart.Series = new LiveCharts.SeriesCollection
+        // --- АНАЛІТИКА КІЛ ---
+        if (laps.Count > 0)
         {
-            new LiveCharts.Wpf.LineSeries
-            {
-                Title = $"{selectedDriver.FullName}",
-                Values = new LiveCharts.ChartValues<int>(telemetry.Select(t => t.Speed)),
-                Stroke = System.Windows.Media.Brushes.OrangeRed,
-                PointGeometry = null,
-                StrokeThickness = 2
-            }
-        };
+            var times = laps.Select(l => l.LapDuration!.Value).ToList();
+
+            double bestLap = times.Min();
+            double avgLap = times.Average();
+
+            double sumSquares = times.Sum(t => Math.Pow(t - avgLap, 2));
+            double stdDev = Math.Sqrt(sumSquares / times.Count);
+            
+            double score = Math.Max(50, Math.Min(99, 100 - (stdDev * 10)));
+
+            BestLapLabel.Text = TimeSpan.FromSeconds(bestLap).ToString(@"mm\:ss\.fff");
+            AvgLapLabel.Text = TimeSpan.FromSeconds(avgLap).ToString(@"mm\:ss\.fff");
+            StdDevLabel.Text = $"±{stdDev:F2} сек";
+            ConsistencyScoreLabel.Text = $"{score:F0}%";
+            ConsistencyProgress.Value = score;
+        }
+        else
+        {
+            BestLapLabel.Text = "N/A";
+            AvgLapLabel.Text = "N/A";
+            StdDevLabel.Text = "±0.00 сек";
+            ConsistencyScoreLabel.Text = "--%";
+            ConsistencyProgress.Value = 0;
+        }
     }
     catch (Exception ex)
     {
@@ -865,6 +895,153 @@ private async void ButtonLoadTelemetry_Click(object sender, RoutedEventArgs e)
     finally
     {
         BtnLoadTelemetry.IsEnabled = true;
+    }
+}
+private async void ButtonLoadApiStrategy_Click(object sender, RoutedEventArgs e)
+{
+    if (DriverCombo.SelectedItem is not Driver selectedDriver)
+    {
+        MessageBox.Show("Оберіть пілота!", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+        return;
+    }
+
+    BtnLoadApiStrategy.IsEnabled = false;
+
+    try
+    {
+// 1. ВИТЯГУЄМО НАЗВУ ОБРАНОЇ ТРАСИ
+        string circuitSearch = CircuitCombo.SelectedItem is Circuit c 
+            ? (!string.IsNullOrEmpty(c.Location) ? c.Location : c.Name) 
+            : "";
+
+        // 2. ОТРИМУЄМО ПОГОДУ САМЕ ДЛЯ ЦІЄЇ ТРАСИ (передаємо circuitSearch)
+        var weather = await _apiService.GetSessionWeatherAsync(circuitSearch);
+
+        if (weather != null)
+        {
+            // Автоматично виставляємо температуру асфальту обраного треку
+            TempStrategySlider.Value = Math.Round(weather.TrackTemperature);
+        }
+
+        // 2. Витягуємо номер пілота
+        int driverNumber = 1;
+        var match = System.Text.RegularExpressions.Regex.Match(selectedDriver.FullName, @"#(\d+)");
+        if (match.Success) driverNumber = int.Parse(match.Groups[1].Value);
+
+        // 3. Завантажуємо стінти
+        var stints = await _apiService.GetDriverStintsAsync(driverNumber);
+
+        if (stints.Count == 0)
+        {
+            MessageBox.Show("Дані про стінти відсутні.", "Інфо", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        // 4. Розрахунок деградації шин під оновлену температуру
+        double tempValue = TempStrategySlider.Value;
+        double tempFactor = 1.0 + ((tempValue - 25.0) * 0.02);
+
+        var series = new LiveCharts.SeriesCollection();
+
+        foreach (var stint in stints.Take(4))
+        {
+            var degValues = new List<double>();
+            double baseDeg = stint.Compound.ToUpper() switch
+            {
+                "SOFT" => 0.15,
+                "MEDIUM" => 0.08,
+                "HARD" => 0.04,
+                _ => 0.07
+            };
+
+            double adjustedDeg = baseDeg * tempFactor;
+            int lapCount = stint.LapsStint > 0 ? stint.LapsStint : 15;
+
+            for (int lap = 1; lap <= lapCount; lap++)
+            {
+                degValues.Add(Math.Round(lap * adjustedDeg, 2));
+            }
+
+            series.Add(new LiveCharts.Wpf.LineSeries
+            {
+                Title = $"{stint.Compound} ({lapCount} кіл)",
+                Values = new LiveCharts.ChartValues<double>(degValues),
+                StrokeThickness = 3
+            });
+        }
+
+        // 5. Виведення результату в текстовий блок над графіком
+        if (DataContext is MainViewModel vm)
+        {
+            vm.TyreSeriesCollection = series;
+            
+            string rainInfo = (weather != null && weather.Rainfall == 1) ? "🌧 Мокра траса" : "☀️ Сухо";
+            string trackTempInfo = weather != null ? $"{weather.TrackTemperature:F1}°C" : $"{tempValue}°C";
+            
+            vm.PitWindowRecommendation = $"OpenF1 Погода: Асфальт {trackTempInfo} | {rainInfo} | Пробіг: {stints.Count} стінти(ів)";
+        }
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show($"Помилка: {ex.Message}");
+    }
+    finally
+    {
+        BtnLoadApiStrategy.IsEnabled = true;
+    }
+}
+private async Task CalculateDriverConsistencyAsync(int driverNumber, string driverName)
+{
+    var laps = await _apiService.GetDriverLapsAsync(driverNumber);
+
+    if (laps.Count < 5) return;
+
+    var lapTimes = laps.Select(l => l.LapDuration!.Value).ToList();
+
+    // 1. Найкраще коло
+    double bestLap = lapTimes.Min();
+
+    // 2. Середній час
+    double avgLap = lapTimes.Average();
+
+    // 3. Стандартне відхилення (Consistency / Варіативність темпу)
+    double sumOfSquares = lapTimes.Sum(t => Math.Pow(t - avgLap, 2));
+    double stdDev = Math.Sqrt(sumOfSquares / lapTimes.Count);
+
+    // 4. Оцінка стабільності у відсотках (100% — ідеальний робот, <70% — часті помилки/трафік)
+    double consistencyScore = Math.Max(0, Math.Min(100, 100 - (stdDev * 15)));
+
+    // Форматування результату для виводу в UI (наприклад, у MessageBox або Label)
+    string message = $"📊 АНАЛІЗ СТАБІЛЬНОСТІ ПІЛОТА {driverName}:\n\n" +
+                     $"⏱ Найкраще коло: {TimeSpan.FromSeconds(bestLap):mm\\:ss\\.fff}\n" +
+                     $"📈 Середній темп: {TimeSpan.FromSeconds(avgLap):mm\\:ss\\.fff}\n" +
+                     $"🎯 Відхилення (StdDev): ±{stdDev:F2} сек\n" +
+                     $"⭐️ Індекс стабільності: {consistencyScore:F0}%";
+
+    MessageBox.Show(message, "Аналітика OpenF1", MessageBoxButton.OK, MessageBoxImage.Information);
+}
+public async Task UpdateLiveWeatherAsync()
+{
+    try
+    {
+        var weather = await _apiService.GetSessionWeatherAsync();
+        if (weather != null)
+        {
+            // Оновлюємо значення слайдера температури асфальту
+            TempStrategySlider.Value = Math.Round(weather.TrackTemperature);
+
+            // Сповіщення про стан траси (Сухо / Дощ)
+            string rainStatus = weather.Rainfall == 1 ? "🌧 Траса мокра (Дощ)" : "☀️ Траса суха";
+            
+            if (DataContext is MainViewModel vm)
+            {
+                vm.PitWindowRecommendation = $"Погода OpenF1: Асфальт {weather.TrackTemperature:F1}°C | Повітря {weather.AirTemperature:F1}°C | {rainStatus}";
+            }
+        }
+    }
+    catch
+    {
+        // Якщо API недоступне, залишаємо базові значення
     }
 }
 }

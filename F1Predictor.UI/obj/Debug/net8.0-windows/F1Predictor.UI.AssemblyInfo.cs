@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("F1Predictor.UI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c69b2f934b0bdfaeede12133257c2160beb4b07a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4c42a9cb8395a2ffe0974ad57abc08aee6924491")]
 [assembly: System.Reflection.AssemblyProductAttribute("F1Predictor.UI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("F1Predictor.UI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
