@@ -27,18 +27,27 @@ namespace F1Predictor.ML
             _predictionEngine = _mlContext.Model.CreatePredictionEngine<RaceData, RacePrediction>(_model);
         }
 
-        public float Predict(float driverId, float teamId, float gridPosition, float circuitId)
+        public float Predict(
+            float driverId, 
+            float teamId, 
+            float gridPosition, 
+            float circuitId, 
+            float tyreType = 1.0f, 
+            float trackTemp = 30.0f, 
+            float circuitType = 2.0f)
         {
             var inputData = new RaceData
             {
                 DriverId = driverId,
                 ConstructorId = teamId,
                 Grid = gridPosition,
-                CircuitId = circuitId
+                CircuitId = circuitId,
+                TyreType = tyreType,
+                TrackTemperature = trackTemp,
+                CircuitType = circuitType
             };
 
             var prediction = _predictionEngine.Predict(inputData);
-
             return prediction.Position;
         }
     }

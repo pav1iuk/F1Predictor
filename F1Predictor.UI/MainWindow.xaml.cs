@@ -6,6 +6,7 @@ using F1Predictor.Core;
 using F1Predictor.Data;
 using F1Predictor.ML;
 using System.Windows.Media.Imaging;
+using F1Predictor.UI.ViewModels;
 using LiveCharts;
 using LiveCharts.Wpf;
 namespace F1Predictor.UI;
@@ -17,6 +18,10 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        // Підключаємо ViewModel для вкладки Стратегії та інших Binding-ів
+        this.DataContext = new MainViewModel();
+
         // 1. Завантаження моделі
         try 
         {
@@ -27,8 +32,12 @@ public partial class MainWindow : Window
             MessageBox.Show($"Помилка ML: {ex.Message}");
         }
         _historyService = new HistoryService();
+    
         // 2. Заповнення списків
         LoadFormData();
+        DriverCombo_SelectionChanged(null, null);
+        TeamCombo_SelectionChanged(null, null);
+        CircuitCombo_SelectionChanged(null, null);
     }
 
     private void LoadFormData()
@@ -85,21 +94,30 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
         float circuitId = Convert.ToSingle(CircuitCombo.SelectedValue);
         float grid = (float)GridSlider.Value;
 
+        float tyreType = (float)(TyreCombo.SelectedIndex + 1); // 1 - Soft, 2 - Medium, 3 - Hard
+        float trackTemp = (float)TempSlider.Value;             // Реальне значення зі слайдера (15-55°C)
+        float circuitType = 2.0f;
+        
         // 4. Робимо прогноз (отримуємо "сире" число, наприклад 2.45)
-        float rawResult = _predictor.Predict(driverId, teamId, grid, circuitId);
+        float rawResult = _predictor.Predict(driverId, teamId, grid, circuitId, tyreType, trackTemp, circuitType);
+        if (tyreType == 1 && trackTemp > 38.0f) // Soft при спеці
+        {
+            rawResult += 2.0f; // Згоряють шини -> +1 додатковий піт-стоп (+2 позиції)
+        }
+        else if (tyreType == 1) // Soft у нормі
+        {
+            rawResult -= 0.5f; // Бонус за швидкий старт
+        }
+        else if (tyreType == 3) // Hard
+        {
+            rawResult += 0.5f; // Повільний темп
+        }
+
         if (WeatherToggle.IsChecked == true)
         {
-            // Дощ вносить хаос!
             Random rainChaos = new Random();
-    
-            // Генеруємо випадкове число від -1.5 до +3.5
-            // Це означає: пілот може випадково відіграти 1.5 місця (майстерність)
-            // Або втратити 3.5 місця (помилка на слизькій трасі)
             float chaosFactor = (float)(rainChaos.NextDouble() * 5.0 - 1.5);
-    
             rawResult += chaosFactor;
-
-            // Штраф за погану надійність у дощ
         }
         // --- ЛОГІКА ОБРОБКИ РЕЗУЛЬТАТУ ---
         int finalPosition;
@@ -698,4 +716,155 @@ private void ButtonPredict_Click(object sender, RoutedEventArgs e)
     {
         return ImageHelper.GetTeamUrl(teamName);
     }
+    private readonly Services.OpenF1ApiService _apiService = new();
+
+    private async void ButtonUpdateApi_Click(object sender, RoutedEventArgs e)
+{
+    ApiProgressBar.Visibility = Visibility.Visible;
+    BtnUpdateApi.IsEnabled = false;
+
+    try
+    {
+        // 1. Отримуємо етапи (траси)
+        var meetingsTask = _apiService.GetMeetingsAsync(2024);
+        // 2. Отримуємо пілотів та команди паралельно
+        var driversTask = _apiService.GetLatestDriversAsync();
+
+        await Task.WhenAll(meetingsTask, driversTask);
+
+        var meetings = await meetingsTask;
+        var apiDrivers = await driversTask;
+
+        int updatedCount = 0;
+
+        // --- ОНОВЛЕННЯ ТРАС ---
+        if (meetings.Count > 0)
+        {
+            var currentCircuits = CircuitCombo.ItemsSource as List<Circuit> ?? new List<Circuit>();
+
+            var updatedCircuits = meetings.Select(m => 
+            {
+                var existing = currentCircuits.FirstOrDefault(c => 
+                    (!string.IsNullOrEmpty(c.Name) && c.Name.Contains(m.CountryName, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(c.Location) && c.Location.Contains(m.CountryName, StringComparison.OrdinalIgnoreCase)));
+
+                return new Circuit
+                {
+                    CircuitId = existing?.CircuitId ?? m.MeetingKey,
+                    Name = $"{m.MeetingName} ({m.CountryName})",
+                    Location = m.CountryName
+                };
+            }).ToList();
+
+            CircuitCombo.ItemsSource = updatedCircuits;
+            CircuitCombo.SelectedIndex = 0;
+            updatedCount += updatedCircuits.Count;
+        }
+
+        // --- ОНОВЛЕННЯ ПІЛОТІВ ТА КОМАНД ---
+        if (apiDrivers.Count > 0)
+        {
+            var currentDrivers = DriverCombo.ItemsSource as List<Driver> ?? new List<Driver>();
+
+            // Конвертуємо API пілотів у наші об'єкти Driver
+            var newDriverList = apiDrivers.Select(ad => 
+            {
+                var existing = currentDrivers.FirstOrDefault(d => 
+                    d.FullName.Contains(ad.FullName, StringComparison.OrdinalIgnoreCase) || 
+                    ad.FullName.Contains(d.FullName, StringComparison.OrdinalIgnoreCase));
+
+                return new Driver
+                {
+                    DriverId = existing?.DriverId ?? ad.DriverNumber,
+                    FullName = $"#{ad.DriverNumber} {ad.FullName} ({ad.TeamName})",
+                };
+            }).ToList();
+
+            DriverCombo.ItemsSource = newDriverList;
+            DriverCombo.SelectedIndex = 0;
+
+            // Формуємо унікальний список команд з API
+            var newTeamList = apiDrivers
+                .Where(d => !string.IsNullOrEmpty(d.TeamName))
+                .Select(d => d.TeamName)
+                .Distinct()
+                .Select((teamName, index) => new Team
+                {
+                    ConstructorId = index + 1,
+                    Name = teamName
+                }).ToList();
+
+            TeamCombo.ItemsSource = newTeamList;
+            TeamCombo.SelectedIndex = 0;
+        }
+
+        MessageBox.Show($"Успішно оновлено {updatedCount} трас та {apiDrivers.Count} пілотів з командами через OpenF1 API!", 
+                        "Повне оновлення API", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show($"Помилка завантаження даних API: {ex.Message}", "Помилка", MessageBoxButton.OK, MessageBoxImage.Error);
+    }
+    finally
+    {
+        ApiProgressBar.Visibility = Visibility.Collapsed;
+        BtnUpdateApi.IsEnabled = true;
+    }
+}
+private async void ButtonLoadTelemetry_Click(object sender, RoutedEventArgs e)
+{
+    if (DriverCombo.SelectedItem is not Driver selectedDriver || CircuitCombo.SelectedItem is not Circuit selectedCircuit)
+    {
+        MessageBox.Show("Оберіть пілота та трасу!", "Увага", MessageBoxButton.OK, MessageBoxImage.Warning);
+        return;
+    }
+
+    BtnLoadTelemetry.IsEnabled = false;
+
+    try
+    {
+        // Отримуємо номер пілота з рядка
+        int driverNumber = 1;
+        var match = System.Text.RegularExpressions.Regex.Match(selectedDriver.FullName, @"#(\d+)");
+        if (match.Success)
+        {
+            driverNumber = int.Parse(match.Groups[1].Value);
+        }
+
+        // Передаємо назву країни/траси для точного пошуку сесії в OpenF1
+        string searchParam = !string.IsNullOrEmpty(selectedCircuit.Location) ? selectedCircuit.Location : selectedCircuit.Name;
+        
+        var telemetry = await _apiService.GetCarTelemetryAsync(driverNumber, searchParam);
+
+        if (telemetry.Count == 0)
+        {
+            MessageBox.Show($"На жаль, у сервері OpenF1 відсутні дані телеметрії для {selectedDriver.FullName} на цій трасі.", 
+                            "Інформація", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        TelemetryDriverLabel.Text = selectedDriver.FullName;
+        TelemetryMaxSpeedLabel.Text = $"{telemetry.Max(t => t.Speed)} км/год";
+
+        TelemetryChart.Series = new LiveCharts.SeriesCollection
+        {
+            new LiveCharts.Wpf.LineSeries
+            {
+                Title = $"{selectedDriver.FullName}",
+                Values = new LiveCharts.ChartValues<int>(telemetry.Select(t => t.Speed)),
+                Stroke = System.Windows.Media.Brushes.OrangeRed,
+                PointGeometry = null,
+                StrokeThickness = 2
+            }
+        };
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show($"Помилка: {ex.Message}");
+    }
+    finally
+    {
+        BtnLoadTelemetry.IsEnabled = true;
+    }
+}
 }

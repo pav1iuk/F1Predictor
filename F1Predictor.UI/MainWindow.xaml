@@ -23,10 +23,42 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" materialDesign:ShadowAssist.ShadowDepth="Depth3">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock VerticalAlignment="Center" Margin="16 0 0 0" FontSize="24" FontWeight="Bold" Text="🏁 F1 AI PREDICTOR PRO"/>
-            </StackPanel>
+        <materialDesign:ColorZone Mode="PrimaryMid" Padding="16,10" materialDesign:ShadowAssist.ShadowDepth="Depth3">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Заголовок ліворуч -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="RacingHelmet" Width="28" Height="28" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock FontSize="22" FontWeight="Bold" Text="🏁 F1 AI PREDICTOR PRO" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Панель API праворуч -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ProgressBar x:Name="ApiProgressBar" 
+                                 Style="{StaticResource MaterialDesignCircularProgressBar}" 
+                                 Value="0" IsIndeterminate="True" 
+                                 Visibility="Collapsed" 
+                                 Width="22" Height="22" Margin="0,0,15,0"
+                                 Foreground="White"/>
+
+                    <Button x:Name="BtnUpdateApi" 
+                            Click="ButtonUpdateApi_Click" 
+                            Style="{StaticResource MaterialDesignOutlinedButton}" 
+                            Foreground="White" BorderBrush="White"
+                            Height="36" Padding="12,0"
+                            materialDesign:ButtonAssist.CornerRadius="18">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="CloudRefresh" Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Оновити дані API" VerticalAlignment="Center" FontSize="12"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
         </materialDesign:ColorZone>
         
 
@@ -96,7 +128,23 @@
                                 <TextBlock Text="{Binding ElementName=GridSlider, Path=Value}" DockPanel.Dock="Right" FontWeight="Bold" Margin="10,0,0,0" FontSize="16"/>
                                 <Slider x:Name="GridSlider" Minimum="1" Maximum="20" Value="1" TickFrequency="1" IsSnapToTickEnabled="True"/>
                             </DockPanel>
+                            <!-- Вибір шин для прогнозу -->
+                            <!-- Вибір шин для прогнозу -->
+                            <TextBlock Text="Тип шин на старті:" Foreground="Gray" Margin="0,10,0,5"/>
+                            <ComboBox x:Name="TyreCombo" SelectedIndex="0" 
+                                      Style="{StaticResource MaterialDesignFloatingHintComboBox}" Margin="0,0,0,15">
+                                <ComboBoxItem Content="🔴 Soft (Швидкий старт, +1 піт-стоп)"/>
+                                <ComboBoxItem Content="🟡 Medium (Оптимальний баланс)"/>
+                                <ComboBoxItem Content="⚪ Hard (Повільний старт, 1 піт-стоп)"/>
+                            </ComboBox>
 
+                            <!-- Температура траси -->
+                            <TextBlock Text="Температура асфальту (°C):" Foreground="Gray" Margin="0,0,0,5"/>
+                            <DockPanel Margin="0,0,0,20">
+                                <TextBlock Text="{Binding ElementName=TempSlider, Path=Value, StringFormat={}{0:F0}°C}" 
+                                           DockPanel.Dock="Right" FontWeight="Bold" Margin="10,0,0,0" FontSize="14"/>
+                                <Slider x:Name="TempSlider" Value="25" Minimum="15" Maximum="55" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                            </DockPanel>
                             <Button Height="50" FontSize="18" FontWeight="Bold" Click="ButtonPredict_Click"
                                     materialDesign:ButtonAssist.CornerRadius="25"
                                     Foreground="White" BorderThickness="0">
@@ -106,7 +154,7 @@
                                         <GradientStop Color="#B71C1C" Offset="1.0"/>
                                     </LinearGradientBrush>
                                 </Button.Background>
-    
+
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="FlagCheckered" Width="24" Height="24" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                     <TextBlock Text="ПРОГНОЗ" VerticalAlignment="Center"/>
@@ -138,17 +186,17 @@
                                                 <DropShadowEffect BlurRadius="20" ShadowDepth="10" Opacity="0.5" Color="Black"/>
                                             </Border.Effect>
     
-                                            <Image x:Name="DriverPhoto" Stretch="UniformToFill"/>
+                                            <Image x:Name="DriverPhoto" Source="{Binding DriverPhotoPath}" Stretch="UniformToFill"/>
                                         </Border>
 
                                         <Border Width="100" Height="100" CornerRadius="15" Background="White" VerticalAlignment="Center" Margin="0,0,20,0">
                                             <Border.Effect>
                                                 <DropShadowEffect BlurRadius="10" ShadowDepth="5" Opacity="0.3"/>
                                             </Border.Effect>
-                                            <Image x:Name="TeamLogo" Stretch="Uniform" Margin="10"/>
+                                            <Image x:Name="TeamLogo" Source="{Binding TeamLogoPath}" Stretch="Uniform" Margin="10"/>
                                         </Border>
                                         <Border Width="100" Height="100" CornerRadius="10" Background="Transparent" VerticalAlignment="Center">
-                                            <Image x:Name="CircuitImage" Stretch="Uniform"/>
+                                            <Image x:Name="CircuitImage" Source="{Binding CircuitImagePath}" Stretch="Uniform"/>
                                         </Border>
                                     </StackPanel>
 
@@ -173,12 +221,12 @@
 
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                     <TextBlock Text="Прогнозований результат:" Foreground="Gray" FontSize="16"/>
-                                    <TextBlock x:Name="ResultText" Text="---" FontSize="48" FontWeight="Bold" Foreground="#FF5252" 
+                                    <TextBlock x:Name="ResultText" Text="{Binding PredictionResultText}" FontSize="48" FontWeight="Bold" Foreground="#FF5252" 
                                                HorizontalAlignment="Left" RenderTransformOrigin="0.5,0.5">
                                         <TextBlock.RenderTransform>
                                             <ScaleTransform ScaleX="1" ScaleY="1"/>
                                         </TextBlock.RenderTransform>
-                                    </TextBlock>    
+                                    </TextBlock>  
                                 </StackPanel>
                             </Grid>
                         </materialDesign:Card>
@@ -287,6 +335,149 @@
                                 <lvc:Axis MinValue="0"></lvc:Axis>
                             </lvc:CartesianChart.AxisY>
                         </lvc:CartesianChart>
+                    </materialDesign:Card>
+                </Grid>
+            </TabItem>
+            <!-- 5-ТА ВКЛАДКА: Телеметрія та темп -->
+<TabItem Width="80" Height="80">
+    <TabItem.Header>
+        <StackPanel>
+            <!-- Іконка спидометра для бокового меню -->
+            <materialDesign:PackIcon Kind="Speedometer" HorizontalAlignment="Center" Width="24" Height="24"/>
+            <TextBlock Text="Темп" HorizontalAlignment="Center" FontSize="10" Margin="0,2,0,0"/>
+        </StackPanel>
+    </TabItem.Header>
+
+    <Grid Margin="20">
+        <!-- Картка телеметрії швидкості -->
+        <materialDesign:Card Padding="20" UniformCornerRadius="10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 1. Шапка з кнопкою -->
+                <DockPanel Grid.Row="0" Margin="0,0,0,15">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <materialDesign:PackIcon Kind="Gauge" Width="24" Height="24" Foreground="#FF5252" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Text="Телеметрія швидкості заїзду (OpenF1 Live)" Style="{StaticResource MaterialDesignHeadline6TextBlock}"/>
+                    </StackPanel>
+                    
+                    <Button x:Name="BtnLoadTelemetry" 
+                            Click="ButtonLoadTelemetry_Click" 
+                            HorizontalAlignment="Right" 
+                            Style="{StaticResource MaterialDesignRaisedButton}" 
+                            Background="#FF5252" BorderBrush="#FF5252" Height="36">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="CloudDownload" Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Завантажити телеметрію" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </DockPanel>
+
+                <!-- 2. Інформаційна панель (Контекст даних) -->
+                <materialDesign:Card Grid.Row="1" Background="#2D2D2D" Padding="12" Margin="0,0,0,15" UniformCornerRadius="5">
+                    <DockPanel>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Пілот: " Foreground="Gray" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TelemetryDriverLabel" Text="Не обрано" FontWeight="Bold" Foreground="White" Margin="5,0,20,0" VerticalAlignment="Center"/>
+                            
+                            <TextBlock Text="Макс. швидкість: " Foreground="Gray" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TelemetryMaxSpeedLabel" Text="--- км/год" FontWeight="Bold" Foreground="#4CAF50" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="* Показано графік зміни швидкості (км/год) вздовж сесії" Foreground="Gray" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </DockPanel>
+                </materialDesign:Card>
+
+                <!-- 3. Графік LiveCharts -->
+                <lvc:CartesianChart Grid.Row="2" x:Name="TelemetryChart" Height="350" LegendLocation="Top">
+                    <lvc:CartesianChart.AxisX>
+                        <lvc:Axis Title="Точки вимірювання (Telemetry Samples)"/>
+                    </lvc:CartesianChart.AxisX>
+                    <lvc:CartesianChart.AxisY>
+                        <lvc:Axis Title="Швидкість (км/год)" MinValue="0" MaxValue="360"/>
+                    </lvc:CartesianChart.AxisY>
+                </lvc:CartesianChart>
+            </Grid>
+        </materialDesign:Card>
+    </Grid>
+</TabItem>
+            <!-- НОВА ВКЛАДКА: Стратегія шин -->
+            <TabItem Width="80" Height="80">
+                <TabItem.Header>
+                    <StackPanel>
+                        <materialDesign:PackIcon Kind="Tire" HorizontalAlignment="Center" Width="24" Height="24"/>
+                        <TextBlock Text="Стратегія" HorizontalAlignment="Center" FontSize="10"/>
+                    </StackPanel>
+                </TabItem.Header>
+
+                <Grid Margin="20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="350"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Ліва панель: Налаштування шин та температури -->
+                    <materialDesign:Card Padding="20" Margin="0,0,20,0" UniformCornerRadius="10" materialDesign:ShadowAssist.ShadowDepth="Depth2">
+                        <StackPanel>
+                            <TextBlock Text="Стратегія шин 🛞" Style="{StaticResource MaterialDesignHeadline5TextBlock}" Margin="0,0,0,20"/>
+
+                            <TextBlock Text="Тип шин на старті:" Foreground="Gray" Margin="0,0,0,5"/>
+                            <!-- ✅ ПРАВИЛЬНИЙ КОД БЕЗ КОНВЕРТЕРА -->
+                            <ComboBox x:Name="TyreStrategyCombo" SelectedIndex="0" 
+                                      Style="{StaticResource MaterialDesignFloatingHintComboBox}" Margin="0,0,0,15">
+                                <ComboBoxItem Content="🔴 Soft (Швидкий старт, +1 піт-стоп)"/>
+                                <ComboBoxItem Content="🟡 Medium (Оптимальний баланс)"/>
+                                <ComboBoxItem Content="⚪ Hard (Повільний старт, 1 піт-стоп)"/>
+                            </ComboBox>
+
+                            <!-- Температура траси -->
+                            <!-- Вкладка 4: Стратегія -->
+                            <TextBlock Text="Температура асфальту (°C):" Foreground="Gray" Margin="0,0,0,5"/>
+                            <DockPanel Margin="0,0,0,20">
+                                <TextBlock x:Name="TempStrategyText" 
+                                           Text="{Binding ElementName=TempStrategySlider, Path=Value, StringFormat={}{0:F0}°C}" 
+                                           DockPanel.Dock="Right" FontWeight="Bold" Margin="10,0,0,0" FontSize="14"/>
+                                <Slider x:Name="TempStrategySlider" 
+                                        Value="25" 
+                                        Minimum="15" 
+                                        Maximum="55" 
+                                        TickFrequency="1" 
+                                        IsSnapToTickEnabled="True"/>
+                            </DockPanel>
+
+                            <Button Content="Розрахувати стратегію" 
+                                    Command="{Binding CalculateTyreStrategyCommand}" 
+                                    Height="45" FontSize="16" FontWeight="Bold"
+                                    materialDesign:ButtonAssist.CornerRadius="20"/>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                    <!-- Права панель: Результат та Графік LiveCharts -->
+                    <materialDesign:Card Grid.Column="1" Padding="20" UniformCornerRadius="10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                                <TextBlock Text="Аналіз деградації та вікно піт-стопу" Style="{StaticResource MaterialDesignHeadline6TextBlock}"/>
+                                <TextBlock Text="{Binding PitWindowRecommendation}" 
+                                           FontSize="18" FontWeight="Bold" Foreground="#FF5252" Margin="0,10,0,0"/>
+                            </StackPanel>
+
+                            <lvc:CartesianChart Grid.Row="1" Series="{Binding TyreSeriesCollection}">
+                                <lvc:CartesianChart.AxisX>
+                                    <lvc:Axis Title="Коло гонки" Labels="{Binding LapLabels}"/>
+                                </lvc:CartesianChart.AxisX>
+                                <lvc:CartesianChart.AxisY>
+                                    <lvc:Axis Title="Втрата темпу (секунди)"/>
+                                </lvc:CartesianChart.AxisY>
+                            </lvc:CartesianChart>
+                        </Grid>
                     </materialDesign:Card>
                 </Grid>
             </TabItem>

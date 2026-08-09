@@ -8,7 +8,14 @@ namespace F1Predictor.ML
         public float ConstructorId { get; set; }
         public float Grid { get; set; }
         public float CircuitId { get; set; }
+        
+        public float TyreType { get; set; }  
+        
+        public float TrackTemperature { get; set; }  
+        
+        public float CircuitType { get; set; }      
 
+        // Цільове значення (Label для регресії)
         public float PositionOrder { get; set; }
     }
 

@@ -112,3 +112,4 @@ C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.UI\obj\Debug\net8.0-windo
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.UI\bin\Debug\net8.0-windows\Data\pit_stops.csv
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.UI\bin\Debug\net8.0-windows\Data\qualifying.csv
 C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.UI\bin\Debug\net8.0-windows\Data\status.csv
+C:\Users\Pavliuk\RiderProjects\F1Predictor\F1Predictor.UI\bin\Debug\net8.0-windows\CommunityToolkit.Mvvm.dll

@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "mcJ/1rOj2ls=",
+  "dgSpecHash": "0cA9DZ24w6g=",
   "success": true,
   "projectFilePath": "C:\\Users\\Pavliuk\\RiderProjects\\F1Predictor\\F1Predictor.UI\\F1Predictor.UI.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\Pavliuk\\.nuget\\packages\\communitytoolkit.mvvm\\8.4.2\\communitytoolkit.mvvm.8.4.2.nupkg.sha512",
     "C:\\Users\\Pavliuk\\.nuget\\packages\\livecharts\\0.9.7\\livecharts.0.9.7.nupkg.sha512",
     "C:\\Users\\Pavliuk\\.nuget\\packages\\livecharts.wpf\\0.9.7\\livecharts.wpf.0.9.7.nupkg.sha512",
     "C:\\Users\\Pavliuk\\.nuget\\packages\\materialdesigncolors\\2.1.4\\materialdesigncolors.2.1.4.nupkg.sha512",
